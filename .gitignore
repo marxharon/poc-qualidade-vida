@@ -1,0 +1,23 @@
+# Arquivos de variáveis de ambiente (Chaves de API, Senhas de Banco)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Dependências
+node_modules/
+vendor/
+
+# Builds, caches e logs
+.next/
+dist/
+build/
+.expo/
+*.log
+npm-debug.log
+yarn-error.log
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db

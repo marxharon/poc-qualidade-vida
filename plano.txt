@@ -1,0 +1,122 @@
+PLANO DE IMPLEMENTAÇÃO DA POC - PLATAFORMA INTELIGENTE DE QUALIDADE DE VIDA
+
+Este documento descreve detalhadamente os passos de implementação da plataforma de Gêmeos Digitais e IA para monitoramento de bem-estar (ESG), focado em entregas pequenas, testáveis e com arquitetura modular.
+
+Diretrizes de Arquitetura e Boas Práticas:
+- Modularização: O código NÃO deve ficar centralizado em arquivos únicos. Projetos devem ser separados em pastas lógicas: componentes de UI, páginas/telas, controladores, serviços, modelos e rotas.
+- Controle de Versão (GitHub): Arquivos sensíveis e de dependências NÃO deverão ser versionados. O repositório deverá ter um arquivo `.gitignore` na raiz rigorosamente configurado para ignorar:
+  * Arquivos de variáveis de ambiente: `.env`, `.env.local`, `.env.development` (onde ficarão chaves de API de IA, strings de conexão do banco, etc.)
+  * Dependências: `node_modules/`, `vendor/`
+  * Builds, caches e logs: `.next/`, `dist/`, `build/`, `.expo/`, `*.log`, `npm-debug.log`
+
+Estrutura de Diretórios do Projeto (Monorepo):
+/backend      -> API Node.js com Drizzle ORM (Rotas, Controladores, Serviços, Modelos).
+/frontend     -> Aplicação Web/Next.js do Painel do Gestor (Componentes isolados, Páginas, Hooks).
+/mobile       -> App React Native/Expo do Colaborador (Telas, Componentes de UI, Serviços de Integração).
+/ia-service   -> Serviço dedicado ao processamento do LLM e interações com a memória do Gêmeo Digital (ChromaDB).
+/infra        -> Arquivos de configuração da infraestrutura (Docker compose).
+
+Stack Tecnológica Definida:
+- Banco de Dados Relacional: PostgreSQL (Instalado LOCALMENTE no ambiente de desenvolvimento, NÃO em contêiner).
+- Banco de Dados Vetorial: ChromaDB (Executado via Docker).
+- Backend Principal: Node.js (Express/Fastify) + Drizzle ORM.
+- IA Service: Serviço isolado (Node.js/Python) para comunicação com LLMs. Recomendado prever suporte a LLMs locais (ex: Ollama com Llama 3) para garantir soberania de dados e privacidade em conformidade com políticas do Serpro/LGPD.
+- App Móvel: React Native via Expo (simulação de dispositivo).
+- Web / Dashboard: Next.js / React (TailwindCSS, Recharts, componentes modernos baseados em Shadcn UI).
+
+--------------------------------------------------------------------------------
+Passo 1: Setup do Repositório e Estrutura Inicial
+--------------------------------------------------------------------------------
+- Criar o repositório no GitHub.
+- Criar e preencher o arquivo `.gitignore` com todas as regras de exclusão de bibliotecas e chaves.
+- Criar a estrutura base de pastas: `/backend`, `/frontend`, `/mobile`, `/ia-service`, `/infra`.
+- Criar o arquivo `README.md` detalhando os pré-requisitos: instalação local do PostgreSQL, Docker, Node.js e passos para popular as variáveis de ambiente.
+
+--------------------------------------------------------------------------------
+Passo 2: Configuração da Infraestrutura (PostgreSQL Local & ChromaDB via Docker)
+--------------------------------------------------------------------------------
+- Instalar o PostgreSQL localmente na máquina, criar o banco de dados `beqv_db` e o usuário correspondente.
+- Criar o arquivo `/infra/docker-compose.yml` contendo APENAS a configuração do contêiner do ChromaDB (memória vetorial da IA).
+- Teste: Executar `docker-compose up -d` para subir o ChromaDB, e utilizar uma ferramenta de banco de dados (ex: DBeaver) para testar a conexão local no PostgreSQL.
+
+--------------------------------------------------------------------------------
+Passo 3: Backend Base e Modularização (Node.js + Drizzle ORM)
+--------------------------------------------------------------------------------
+- Inicializar o projeto na pasta `/backend`.
+- Estruturar as pastas: `src/routes`, `src/controllers`, `src/services`, `src/models` (ou `src/db/schemas`).
+- Criar os Schemas no Drizzle ORM para mapear as regras do framework no PostgreSQL:
+  * Tabela `Colaboradores`: `id_colaborador`, `credenciais_acesso`, `data_criacao`.
+  * Tabela `Personas` (Atende App 2.1 a 2.8): `id_persona`, `id_colaborador`, `nome_preferido`, `personalidade`, `gostos`, `desgostos`, `relacao_equipe`, `sentimento_trabalho`, `motivacoes`, `hardskills_softskills`, `aceite_lgpd_termos`.
+  * Tabela `EixosESG` (Atende aos 10 Eixos definidos no artigo): `id_eixo`, `nome`, `descricao_foco`.
+  * Tabela `Interacoes` (Atende App 4 a 9): `id_interacao`, `id_persona`, `id_eixo`, `data_interacao`, `pergunta_ia`, `resposta_colaborador`, `percentual_adesao`, `sugestao_ia`, `feedback_sugestao` (boa, ruim, indiferente).
+  * Tabela `GemeosOrganizacionais` (Atende Analista IA 3): `id_agrupamento`, `nome_categoria` (ex: Sedentarismo, Risco Burnout), `descricao_perfil`.
+  * Tabela `HistoricoEvolucaoESG` (Atende Analista IA 4 e Web Plataforma): `id_historico`, `id_agrupamento`, `id_eixo`, `data_medicao`, `pontuacao_agregada`, `sugestao_estrategica_ia`.
+- Teste: Executar as migrações (`drizzle-kit push`) no PostgreSQL local e testar endpoints básicos no `src/controllers/healthController.js`.
+
+--------------------------------------------------------------------------------
+Passo 4: Serviço de IA e Memória do Gêmeo Digital (/ia-service)
+--------------------------------------------------------------------------------
+- Inicializar o projeto na pasta `/ia-service`.
+- Estruturar as Coleções (Collections) no banco vetorial ChromaDB para a memória da IA:
+  * Collection `personas_base_embeddings`: Armazena a representação vetorial (embedding) do questionário inicial da Persona. Metadados: `id_persona`. Permite ao LLM resgatar a "essência" original do Gêmeo Digital rapidamente.
+  * Collection `memoria_interacoes_embeddings`: Armazena os embeddings de cada interação diária. Metadados: `id_persona`, `data_interacao`, `id_eixo`. (Atende App 4.4, garantindo a retenção da memória para que o LLM não repita abordagens e entenda a evolução temporal do sentimento).
+- Dividir as classes e regras em arquivos: `src/services/digitalTwinGenerator`, `src/services/conversationalMentor`.
+- Implementar regras do Framework (Passos 3 a 7 do app):
+  * `digitalTwinGenerator`: Normalizar as 8 respostas iniciais e gerar o Gêmeo Digital Inicial no ChromaDB.
+  * `conversationalMentor`: Sortear diariamente 1 pergunta objetiva baseada nos eixos de ESG (sem repetir no dia seguinte); Interpretar interações em linguagem natural e prover até 4 respostas curtas para clique; Prover sugestão de ação acolhedora.
+  * Configurar o *System Prompt* da IA para garantir o cumprimento da diretriz não-clínica do artigo (nunca dar diagnósticos médicos, focar estritamente em bem-estar e ESG).
+- Teste: Executar um script isolado passando as 8 características iniciais e validando se o LLM consegue formular as perguntas diárias.
+
+--------------------------------------------------------------------------------
+Passo 5: App Móvel - Modularização e Onboarding da Persona
+--------------------------------------------------------------------------------
+- Inicializar projeto Expo na pasta `/mobile`.
+- Criar a estrutura interna de arquivos: `src/screens` (telas visuais), `src/components` (inputs customizados, botões), `src/services` (chamadas para a API via Axios/Fetch).
+- Implementar a `src/screens/LoginScreen`.
+- Implementar Termo de Aceite LGPD alertando que os dados serão anonimizados e agregados (requisito ético do artigo).
+- Implementar o Onboarding (`src/screens/OnboardingScreen`) com os 8 requisitos do Passo 2 do framework.
+- Conectar a tela aos endpoints do `/backend` para invocar a IA e persistir a Persona.
+- Teste: Rodar o simulador no Expo, preencher as 8 informações e checar se o banco local armazenou corretamente.
+
+--------------------------------------------------------------------------------
+Passo 6: App Móvel - Fluxo Conversacional Diário
+--------------------------------------------------------------------------------
+- Implementar a `src/screens/DailyChatScreen` simulando recebimento da pergunta aleatória do dia.
+- Criar UI combinando entrada de texto (interpretação fluida) com 4 Chips/Botões para respostas curtas geradas pela IA.
+- Implementar no recebimento da Sugestão da IA (acolhimento/melhoria) as 3 opções de feedback do colaborador: Boa, Ruim, Indiferente (Item 8 do framework).
+- Garantir botão/ação de "Não quero responder hoje" (Item 4.3).
+- Implementar loop condicional: IA pergunta "Deseja informar mais alguma coisa sobre seu bem-estar atual?" -> Se sim, volta ao fluxo de análise (Itens 10 e 11).
+- Criar a `src/screens/SuggestionDetailsScreen` para o colaborador consultar suas sugestões, exibindo: Eixo ESG da sugestão, Percentual de adesão, Razão da sugestão e Pontos de melhoria esperados (Item 9 do framework).
+- Teste: Completar o fluxo diário, marcando a sugestão como "Boa" e consultando os detalhes mapeados na outra aba.
+
+--------------------------------------------------------------------------------
+Passo 7: Backend - Motor Analista IA de BEQV (Gêmeos Organizacionais)
+--------------------------------------------------------------------------------
+- No `/backend`, criar `src/services/analystAiService.ts` (executado por CronJob ou endpoint de admin).
+- Implementar a anonimização e agrupamento (Item 2 e 3 do Analista IA no framework): Ler as respostas do banco desvinculando identificadores.
+- Classificar em ao menos 10 categorias de Gêmeos Digitais Organizacionais (ex: tendência ao burnout, sedentarismo, problemas na equipe, etc).
+- Atualizar as métricas de acompanhamento (1 a 10 dos eixos ESG) desses agrupamentos no PostgreSQL e gerar a "sugestão de ação de melhoria corporativa" para o agrupamento.
+- Teste: Popular o banco com dados de teste para vários "funcionários", executar o serviço e verificar a formação correta das 10 categorias agregadas.
+
+--------------------------------------------------------------------------------
+Passo 8: Plataforma Web - Dashboard Analítico (Frontend)
+--------------------------------------------------------------------------------
+- Inicializar Next.js na pasta `/frontend`.
+- Separar estrutura: `src/pages/dashboard`, `src/components/charts/RadarChartComponent`, `src/components/ui`.
+- Implementar `src/pages/LoginGestor`.
+- Construir o Dashboard com 4 visualizações cruciais (Item 2 do Plataforma Analítica do framework):
+  1. Radar: Estado dos 10 eixos atuais de um Gêmeo Organizacional vs Estado Ideal.
+  2. Linhas (Tendência): Evolução preditiva do engajamento/saúde no tempo.
+  3. Heatmap: Cruzamento de perfis agrupados e suas anomalias (riscos).
+  4. Barras: Eficácia das sugestões de IA (Boa/Ruim/Indiferente).
+- Aba `Sugestões Estratégicas`: Exibe as propostas geradas no Passo 7 pela IA para apoiar a decisão dos gestores.
+- Teste: Visualizar o painel web no navegador consumindo o PostgreSQL e verificar se nenhum dado individual (identificável) vaza no painel.
+
+--------------------------------------------------------------------------------
+Passo 9: Integração Completa, UX e Ajustes Finais
+--------------------------------------------------------------------------------
+- Teste End-to-End global: Iniciar PostgreSQL local, ChromaDB Docker, Backend, IA-Service, Frontend Next.js e App Expo.
+- Validar fluxo completo: Colaborador define persona -> Recebe pergunta aleatória diária -> IA classifica o eixo ESG e dá sugestões -> Colaborador avalia sugestão -> Motor de IA agrega em grupo corporativo -> Gestor entra no web dashboard e vê atualização nos gráficos agregados.
+- Fazer passagens finas no layout (UX) baseadas em acessibilidade.
+- Aplicar formulário rápido ao fim da POC para tabulação da "Aceitação dos Usuários" conforme definido no Artigo.
+- Atualizar documentação `README.md` com evidências (prints) e roteiro validado de uso da POC.

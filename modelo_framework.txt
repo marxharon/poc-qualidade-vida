@@ -1,0 +1,153 @@
+Modelo do Framework
+
+Aplicativo Móvel
+
+Fluxo Principal
+
+1. O colaborador acessa o app via tela de login
+2. No primeiro acesso, o colaborador deverá definir sua Persona (Gêmeo Digital) preenchendo um pequeno questionário:
+	2.1 como quer ser chamado;
+	2.2 características da sua personalidade;
+	2.3 o que gosta de fazer;
+	2.4 o que não gosta de fazer;
+	2.5 como se relaciona com seus colegas de trabalho
+	2.6 como se sente realizando o seu trabalho
+	2.7 qual suas motivações para realizar seu trabalho
+	2.8 quais suas principais expertises (hardskills e softskills) 
+3. Após o preenchimento da Persona, o mentor de IA deverá usar as informações fornecidas pelo colaborador e gerar um gêmeo digital com essas informações normalizadas;
+4. O mentor de IA deverá cruzar as informações fornecidas para a Persona e de acordo com os eixos de acompanhamento relacionados ao bem-estar e qualidade de vida (vide relação abaixo), criar uma série inicial de 7 questionamentos (um para cada dia da semana) que serão aplicados para a persona de forma aleatória todos os dias 
+	4.1 sem repetir em dias seguidos;
+	4.2 cada questionamento deverá ser objetivo, exemplos: Como está seu humor? Está se sentindo pressionado no trabalho? Está passando por problemas em casa? Tem se exercitado? Como está seu sono? Está se sentindo cansado? Como está sua carga de trabalho? Tem procrastinado suas tarefas? etc;
+	4.3 o mentor de IA deverá interpretar interações em linguagem natural (via LLM) para capturar o sentimento de forma fluida, mas também dar até 4 sugestões de respostas curtas caso o colaborador prefira selecionar uma, ou então não responder;
+	4.4 quando finalizar todos os questionamentos da semana, o mentor deverá gerar uma nova lista, de acordo com o perfil atualizado da persona do colaborador (manter a memória de eixos gerados e das respostas para a persona);
+5. De acordo com a resposta da persona, o mentor de IA deverá relacionar a resposta ao eixo de acompanhamento e realizar uma acurácia de adesão ao esperado para o eixo;
+6. O mentor de IA deverá atualizar o perfil atual da Persona com o resultado da resposta.
+7. Como um analista em ESG, o mentor de IA deverá dar uma sugestão de ação para a persona de acordo com a atualização do perfil da Persona dele:
+	7.1 primeiramente em relação ao eixo de acompanhamento que a resposta está vinculada, nunca de forma crítica, mas sempre tendo o cuidado de acolhimento e proposta de melhoria contínua;
+	7.2 em segundo, verificar outros pontos que podem estar piorando o bem-estar e a qualidade de vida do colaborador e sugerir ações curtas e objetivas de melhoria;
+8. Ao dar a sugestão o colaborador deverá indicar se a sugestão foi boa, ruim ou indiferente
+9. O colaborador poderá consultar as sugestões do mentor de IA para sua Persona
+	8.1 as sugestões deverão exibir o eixo de acompanhamento de ESG vinculado
+	8.2 seu percentual de adesão ao eixo
+	8.4 o que levou o mentor de IA a propor essa sugestão e
+	8.3 os pontos de melhoria que a sugestão refletirá no bem-estar e qualidade de vida do colaborador
+10. O mentor de IA deverá questionar ao colaborador se ele quer informar mais alguma coisa sobre seu bem-estar atual.
+11. Caso o colaborador queira informar o mentor processa a resposta e executa o fluxo novamente a partir do passo 5; Caso contrário o mentor de IA deseja um bom dia/tarde/noite ao colaborador e encerra o fluxo.
+
+Fluxo alternativo
+
+1. Quando não for o primeiro acesso, o mentor de IA já deve enviar uma mensagem para o app do Colaborador em um horário aleatório entre 8h e 18h com o questionamento do dia e executar o fluxo principal a partir do item 4.
+
+
+Analista IA de bem-estar e qualidade de vida
+
+1. O app do colaborador enviará as informações coletadas e processadas de forma TOTALMENTE ANONIMIZADA e agregada para um agente "Analista IA de bem-estar e qualidade de vida" (IA BEQV)
+2. O IA BEQV deverá criar categorias/agrupamentos para a análise de bem-estar e qualidade de vida;
+3. O IA BEQV deve enquadrar personas com características de histórico semelhantes. Ex.: sedentarismo, tendência ao burnout, tendência ao estresse, tendência à procrastinação, problemas de relacionamento na equipe, etc (ao menos 10 categorias);
+	2.1 sempre vinculados aos eixos de acompanhamento
+	3.2 modelar "Gêmeos Digitais Organizacionais" com base nesses agrupamentos, representando a evolução comportamental coletiva sem expor o indivíduo;
+4. Manter um histórico de evolução das categorias;
+5. Não é permitido detalhar a persona individual no dashboard, mas sim utilizar os Gêmeos Digitais Organizacionais consolidados para viabilizar o monitoramento preditivo e longitudinal das características semelhantes;
+6. Gerar para cada categoria/agrupamento sugestões de ações de melhoria corporativas, preventivas e adaptativas.
+
+Plataforma Analítica
+
+1. O gestor realiza o login na plataforma
+2. É exibido um dashboard analítico, com:
+	2.1 seleção de gráficos e representações visuais dos Gêmeos Digitais (agrupamentos) de análise de bem-estar e qualidade de vida;
+		2.1.1 Gráfico de Radar: comparativo do estado atual dos 10 eixos de ESG vs. o estado ideal da organização;
+		2.1.2 Gráfico de Tendência (Linhas): evolução longitudinal da saúde e do engajamento ao longo do tempo (base para análise preditiva);
+		2.1.3 Mapa de Calor (Heatmap): concentração de anomalias ou riscos psicossociais cruzados por perfis agrupados;
+		2.1.4 Gráfico de Barras: nível de eficácia e adesão às sugestões propostas pela IA;
+	2.2 para cada categoria (Gêmeo Digital Organizacional), visualizar as sugestões estratégicas de melhoria geradas pela IA para apoio à tomada de decisão organizacional.
+
+
+Eixos de Acompanhamento para indicadores de bem-estar e qualidade de vida dos colaboradores
+
+1. Saúde física
+Avalia condições gerais de saúde e prevenção de doenças.
+
+Taxa de absenteísmo por doença
+Número de afastamentos médicos
+Adesão a programas de saúde (vacinação, check-up)
+Índice ergonômico (adequação de postos de trabalho)
+
+
+2. Saúde mental e emocional
+Foca no equilíbrio psicológico e prevenção de transtornos.
+
+Índice de estresse e burnout (pesquisas internas)
+Utilização de apoio psicológico/benefícios de terapia
+Taxa de afastamento por transtornos mentais
+Nível de bem-estar emocional percebido
+
+
+3. Clima organizacional e engajamento
+Mede o ambiente de trabalho e a motivação dos colaboradores.
+
+Índice de engajamento (eNPS – employee Net Promoter Score)
+Resultados de pesquisas de clima organizacional
+Taxa de rotatividade voluntária (turnover)
+Índice de confiança na liderança
+
+
+4. Equilíbrio entre vida pessoal e profissional (work-life balance)
+Avalia a sustentabilidade da jornada de trabalho.
+
+Média de horas extras
+Percentual de colaboradores em regime flexível/híbrido
+Índice de satisfação com carga de trabalho
+Uso de férias e folgas
+
+
+5. Segurança e saúde ocupacional
+Relaciona-se à prevenção de acidentes e riscos no trabalho.
+
+Taxa de acidentes de trabalho (com ou sem afastamento)
+Frequência de incidentes reportados
+Aderência a treinamentos de segurança
+Índice de risco ocupacional
+
+
+6. Diversidade, equidade e inclusão (DEI)
+Reflete a justiça social dentro da organização.
+
+Representatividade (gênero, raça, PCD, etc.) por nível hierárquico
+Índice de equidade salarial
+Percepção de inclusão (pesquisa interna)
+Número de denúncias de discriminação
+
+
+7. Desenvolvimento e crescimento profissional
+Avalia oportunidades de carreira e aprendizado.
+
+Horas de treinamento por colaborador
+Taxa de promoção interna
+Índice de satisfação com desenvolvimento profissional
+Participação em programas de capacitação
+
+
+8. Reconhecimento e recompensas
+Mede a valorização dos colaboradores.
+
+Índice de satisfação com remuneração e benefícios
+Frequência de programas de reconhecimento
+Comparativo salarial com mercado
+Percentual de colaboradores elegíveis a bônus/incentivos
+
+
+9. Qualidade das relações interpessoais
+Avalia o ambiente social e colaboração interna.
+
+Índice de conflitos reportados
+Avaliação de trabalho em equipe
+Nível de colaboração interdepartamental
+Índice de assédio moral/denúncias
+
+10. Segurança psicológica e cultura de escuta
+Mede o quanto os colaboradores se sentem seguros para se expressar e contribuir.
+
+Índice de segurança psicológica (pesquisas internas)
+Taxa de participação em pesquisas e canais de feedback
+Tempo de resposta e resolução de demandas internas
+Percepção de abertura da liderança para ouvir ideias e críticas
