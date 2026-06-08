@@ -20,7 +20,7 @@ Stack Tecnológica Definida:
 - Banco de Dados Relacional: PostgreSQL (Instalado LOCALMENTE no ambiente de desenvolvimento, NÃO em contêiner).
 - Banco de Dados Vetorial: ChromaDB (Executado via Docker).
 - Backend Principal: Node.js (Express/Fastify) + Drizzle ORM.
-- IA Service: Serviço isolado (Node.js/Python) para comunicação com LLMs. Recomendado prever suporte a LLMs locais (ex: Ollama com Llama 3) para garantir soberania de dados e privacidade em conformidade com políticas do Serpro/LGPD.
+- IA Service: Serviço isolado (Node.js) para comunicação com a API da OpenAI, processando as interações com o Gêmeo Digital.
 - App Móvel: React Native via Expo (simulação de dispositivo).
 - Web / Dashboard: Next.js / React (TailwindCSS, Recharts, componentes modernos baseados em Shadcn UI).
 

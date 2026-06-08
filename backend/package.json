@@ -1,0 +1,25 @@
+{
+  "name": "beqv-backend",
+  "version": "1.0.0",
+  "description": "API Backend para a POC de Qualidade de Vida",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.js",
+    "db:migrate": "node src/db/migrate.js",
+    "db:seed": "node src/db/seed.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.45.2",
+    "express": "^4.19.2",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10"
+  }
+}

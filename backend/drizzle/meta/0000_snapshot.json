@@ -1,0 +1,379 @@
+{
+  "id": "9c4b0acc-eaa1-498e-b327-d0400b0abdf9",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.colaboradores": {
+      "name": "colaboradores",
+      "schema": "",
+      "columns": {
+        "id_colaborador": {
+          "name": "id_colaborador",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "credenciais_acesso": {
+          "name": "credenciais_acesso",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_criacao": {
+          "name": "data_criacao",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.eixos_esg": {
+      "name": "eixos_esg",
+      "schema": "",
+      "columns": {
+        "id_eixo": {
+          "name": "id_eixo",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descricao_foco": {
+          "name": "descricao_foco",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.gemeos_organizacionais": {
+      "name": "gemeos_organizacionais",
+      "schema": "",
+      "columns": {
+        "id_agrupamento": {
+          "name": "id_agrupamento",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome_categoria": {
+          "name": "nome_categoria",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "descricao_perfil": {
+          "name": "descricao_perfil",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.historico_evolucao_esg": {
+      "name": "historico_evolucao_esg",
+      "schema": "",
+      "columns": {
+        "id_historico": {
+          "name": "id_historico",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "id_agrupamento": {
+          "name": "id_agrupamento",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_eixo": {
+          "name": "id_eixo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_medicao": {
+          "name": "data_medicao",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "pontuacao_agregada": {
+          "name": "pontuacao_agregada",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sugestao_estrategica_ia": {
+          "name": "sugestao_estrategica_ia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "historico_evolucao_esg_id_agrupamento_gemeos_organizacionais_id_agrupamento_fk": {
+          "name": "historico_evolucao_esg_id_agrupamento_gemeos_organizacionais_id_agrupamento_fk",
+          "tableFrom": "historico_evolucao_esg",
+          "tableTo": "gemeos_organizacionais",
+          "columnsFrom": [
+            "id_agrupamento"
+          ],
+          "columnsTo": [
+            "id_agrupamento"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "historico_evolucao_esg_id_eixo_eixos_esg_id_eixo_fk": {
+          "name": "historico_evolucao_esg_id_eixo_eixos_esg_id_eixo_fk",
+          "tableFrom": "historico_evolucao_esg",
+          "tableTo": "eixos_esg",
+          "columnsFrom": [
+            "id_eixo"
+          ],
+          "columnsTo": [
+            "id_eixo"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.interacoes": {
+      "name": "interacoes",
+      "schema": "",
+      "columns": {
+        "id_interacao": {
+          "name": "id_interacao",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "id_persona": {
+          "name": "id_persona",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_eixo": {
+          "name": "id_eixo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_interacao": {
+          "name": "data_interacao",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "pergunta_ia": {
+          "name": "pergunta_ia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resposta_colaborador": {
+          "name": "resposta_colaborador",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "percentual_adesao": {
+          "name": "percentual_adesao",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sugestao_ia": {
+          "name": "sugestao_ia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feedback_sugestao": {
+          "name": "feedback_sugestao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "interacoes_id_persona_personas_id_persona_fk": {
+          "name": "interacoes_id_persona_personas_id_persona_fk",
+          "tableFrom": "interacoes",
+          "tableTo": "personas",
+          "columnsFrom": [
+            "id_persona"
+          ],
+          "columnsTo": [
+            "id_persona"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "interacoes_id_eixo_eixos_esg_id_eixo_fk": {
+          "name": "interacoes_id_eixo_eixos_esg_id_eixo_fk",
+          "tableFrom": "interacoes",
+          "tableTo": "eixos_esg",
+          "columnsFrom": [
+            "id_eixo"
+          ],
+          "columnsTo": [
+            "id_eixo"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.personas": {
+      "name": "personas",
+      "schema": "",
+      "columns": {
+        "id_persona": {
+          "name": "id_persona",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "id_colaborador": {
+          "name": "id_colaborador",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nome_preferido": {
+          "name": "nome_preferido",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "personalidade": {
+          "name": "personalidade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gostos": {
+          "name": "gostos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "desgostos": {
+          "name": "desgostos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "relacao_equipe": {
+          "name": "relacao_equipe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sentimento_trabalho": {
+          "name": "sentimento_trabalho",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motivacoes": {
+          "name": "motivacoes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hardskills_softskills": {
+          "name": "hardskills_softskills",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aceite_lgpd_termos": {
+          "name": "aceite_lgpd_termos",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "personas_id_colaborador_colaboradores_id_colaborador_fk": {
+          "name": "personas_id_colaborador_colaboradores_id_colaborador_fk",
+          "tableFrom": "personas",
+          "tableTo": "colaboradores",
+          "columnsFrom": [
+            "id_colaborador"
+          ],
+          "columnsTo": [
+            "id_colaborador"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

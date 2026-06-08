@@ -21,3 +21,6 @@ yarn-error.log
 # Sistema Operacional
 .DS_Store
 Thumbs.db
+
+# Documentos e Artigos Locais
+proposta_artigo.pdf

@@ -1,0 +1,27 @@
+{
+  "name": "ia-service",
+  "version": "1.0.0",
+  "description": "Serviço de IA para a POC de Qualidade de Vida",
+  "type": "module",
+  "main": "src/test.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test:ia": "node src/test.js"
+  },
+  "dependencies": {
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.1.48",
+    "@langchain/openai": "^1.4.7",
+    "chromadb": "^1.8.1",
+    "chromadb-default-embed": "^2.13.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.22.2",
+    "langchain": "^1.4.4"
+  },
+  "overrides": {
+    "protobufjs": "^7.2.5",
+    "onnxruntime-web": "^1.17.1"
+  }
+}
