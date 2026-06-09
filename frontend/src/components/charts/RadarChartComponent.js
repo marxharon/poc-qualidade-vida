@@ -8,7 +8,7 @@ export default function RadarChartComponent({ data }) {
     const historicoDoEixo = data.historico.find(h => h.id_eixo === eixo.id_eixo);
     return {
       subject: eixo.nome.substring(0, 15) + "...", // Encurta o nome para caber no gráfico
-      EstadoAtual: historicoDoEixo ? historicoDoEixo.pontuacao_agregada : 50, // Pega a pontuação do banco
+      EstadoAtual: historicoDoEixo ? historicoDoEixo.pontuacao_agregada : 0, // Zera se não houver dados no mês
       EstadoIdeal: 100 // Meta da organização
     };
   }) || [];

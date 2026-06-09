@@ -23,8 +23,16 @@ app.post('/api/chat', async (req, res) => {
     try {
         const { id_persona, eixoESGSelecionado, respostaColaboradorNatural } = req.body;
         const resposta = await dailyInteraction(id_persona, eixoESGSelecionado, respostaColaboradorNatural);
-        // A resposta da OpenAI vem como string estruturada, fazemos o parse para JSON
-        res.json({ success: true, data: JSON.parse(resposta) });
+        
+        // Tratamento de segurança: remove crases de marcação Markdown caso a IA as inclua (ex: ```json ... ```)
+        let cleanResponse = resposta;
+        if (cleanResponse.includes('```json')) {
+            cleanResponse = cleanResponse.split('```json')[1].split('```')[0].trim();
+        } else if (cleanResponse.includes('```')) {
+            cleanResponse = cleanResponse.split('```')[1].split('```')[0].trim();
+        }
+        
+        res.json({ success: true, data: JSON.parse(cleanResponse) });
     } catch (error) {
         console.error("Erro na interação do Chat:", error);
         res.status(500).json({ error: error.message });

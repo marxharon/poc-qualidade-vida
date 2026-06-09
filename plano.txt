@@ -86,6 +86,8 @@ Passo 6: App Móvel - Fluxo Conversacional Diário
 - Implementar no recebimento da Sugestão da IA (acolhimento/melhoria) as 3 opções de feedback do colaborador: Boa, Ruim, Indiferente (Item 8 do framework).
 - Garantir botão/ação de "Não quero responder hoje" (Item 4.3).
 - Implementar loop condicional: IA pergunta "Deseja informar mais alguma coisa sobre seu bem-estar atual?" -> Se sim, volta ao fluxo de análise (Itens 10 e 11).
+- Implementar a `src/screens/PersonaHistoryScreen` para exibição do histórico de evolução da persona (Item 12).
+- Garantir que a pergunta diária da IA seja randômica e não se repita caso o usuário converse mais de uma vez no mesmo dia (Item 4.2).
 - Criar a `src/screens/SuggestionDetailsScreen` para o colaborador consultar suas sugestões, exibindo: Eixo ESG da sugestão, Percentual de adesão, Razão da sugestão e Pontos de melhoria esperados (Item 9 do framework).
 - Teste: Completar o fluxo diário, marcando a sugestão como "Boa" e consultando os detalhes mapeados na outra aba.
 
@@ -109,6 +111,7 @@ Passo 8: Plataforma Web - Dashboard Analítico (Frontend)
   2. Linhas (Tendência): Evolução preditiva do engajamento/saúde no tempo.
   3. Heatmap: Cruzamento de perfis agrupados e suas anomalias (riscos).
   4. Barras: Eficácia das sugestões de IA (Boa/Ruim/Indiferente).
+- Adicionar opção e filtro para consulta do histórico de evolução das categorias (Gêmeos Organizacionais) agrupado por mês.
 - Aba `Sugestões Estratégicas`: Exibe as propostas geradas no Passo 7 pela IA para apoiar a decisão dos gestores.
 - Teste: Visualizar o painel web no navegador consumindo o PostgreSQL e verificar se nenhum dado individual (identificável) vaza no painel.
 

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity, KeyboardAvoidingView, Platform, Button } from 'react-native';
 import api from '../services/api';
 
-export default function DailyChatScreen({ navigation }) {
+export default function DailyChatScreen({ route, navigation }) {
+  const { id_persona } = route.params || {};
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   // Fases: 'QUESTION', 'FEEDBACK', 'LOOP_ASK', 'END'
   const [flowStep, setFlowStep] = useState('QUESTION'); 
   const [options, setOptions] = useState([]);
   const [currentSuggestion, setCurrentSuggestion] = useState(null);
+  const [lastQuestion, setLastQuestion] = useState('');
 
   useEffect(() => {
     startDailyChat();
@@ -20,8 +22,9 @@ export default function DailyChatScreen({ navigation }) {
 
   const startDailyChat = async () => {
     try {
-      const res = await api.get('/chat/daily');
+      const res = await api.get(`/chat/daily?exclude=${encodeURIComponent(lastQuestion)}`);
       addMessage(res.data.question, 'bot');
+      setLastQuestion(res.data.question);
       setOptions(res.data.options);
       setFlowStep('QUESTION');
     } catch (error) {
@@ -40,7 +43,11 @@ export default function DailyChatScreen({ navigation }) {
       // Envia resposta para análise da IA
       addMessage("Analisando seu relato...", 'bot');
       try {
-        const res = await api.post('/chat/respond', { relato: text });
+        const res = await api.post('/chat/respond', { 
+            relato: text, 
+            pergunta_ia: lastQuestion,
+            id_persona 
+        });
         const { sugestao_acao, eixo, percentual_adesao } = res.data;
         
         setCurrentSuggestion({ sugestao_acao, eixo, percentual_adesao });
@@ -53,11 +60,13 @@ export default function DailyChatScreen({ navigation }) {
           setFlowStep('FEEDBACK');
         }, 1000);
       } catch (e) {
-        console.error(e);
+        console.error("Erro na API de chat:", e);
+        addMessage("Ocorreu um erro ao processar com a IA. Tente enviar novamente.", 'bot');
+        setFlowStep('QUESTION'); // Destrava o fluxo para o usuário tentar novamente
       }
     } else if (flowStep === 'FEEDBACK') {
       // Computa Feedback
-      await api.post('/chat/feedback', { feedback: text });
+      await api.post('/chat/feedback', { feedback: text, id_persona });
       addMessage("Obrigado pelo feedback!", 'bot');
       
       // Inicia Loop (Itens 10 e 11 do Framework)
@@ -102,6 +111,9 @@ export default function DailyChatScreen({ navigation }) {
         <View style={{ flex: 1, marginLeft: 5 }}>
           <Button title="Avaliar POC" onPress={() => navigation.navigate('FeedbackPOC')} color="#28a745" />
         </View>
+      </View>
+      <View style={{ paddingHorizontal: 10, paddingBottom: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' }}>
+        <Button title="Ver Histórico da Persona" onPress={() => navigation.navigate('PersonaHistory', { id_persona })} color="#6c757d" />
       </View>
       
       <FlatList

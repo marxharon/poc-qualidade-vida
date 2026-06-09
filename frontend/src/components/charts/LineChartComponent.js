@@ -3,13 +3,16 @@ import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function LineChartComponent({ data }) {
+  // Verifica se há dados no período selecionado
+  const hasData = data?.historico && data.historico.length > 0;
+
   // Como a POC tem apenas 1 fotografia de tempo (o último Analista IA rodado), 
-  // vamos simular as 3 semanas anteriores para visualizarmos a predição da tendência
+  // zeramos os valores caso o mês filtrado não possua registros
   const chartData = [
-    { semana: 'Semana 1', saude: 65, engajamento: 60 },
-    { semana: 'Semana 2', saude: 70, engajamento: 65 },
-    { semana: 'Semana 3', saude: 75, engajamento: 72 },
-    { semana: 'Atual', saude: data?.historico[0]?.pontuacao_agregada || 80, engajamento: data?.historico[1]?.pontuacao_agregada || 85 },
+    { semana: 'Semana 1', saude: hasData ? 65 : 0, engajamento: hasData ? 60 : 0 },
+    { semana: 'Semana 2', saude: hasData ? 70 : 0, engajamento: hasData ? 65 : 0 },
+    { semana: 'Semana 3', saude: hasData ? 75 : 0, engajamento: hasData ? 72 : 0 },
+    { semana: 'Atual', saude: hasData ? (data?.historico[0]?.pontuacao_agregada || 80) : 0, engajamento: hasData ? (data?.historico[1]?.pontuacao_agregada || 85) : 0 },
   ];
 
   return (

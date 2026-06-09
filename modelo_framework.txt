@@ -17,7 +17,7 @@ Fluxo Principal
 3. Após o preenchimento da Persona, o mentor de IA deverá usar as informações fornecidas pelo colaborador e gerar um gêmeo digital com essas informações normalizadas;
 4. O mentor de IA deverá cruzar as informações fornecidas para a Persona e de acordo com os eixos de acompanhamento relacionados ao bem-estar e qualidade de vida (vide relação abaixo), criar uma série inicial de 7 questionamentos (um para cada dia da semana) que serão aplicados para a persona de forma aleatória todos os dias 
 	4.1 sem repetir em dias seguidos;
-	4.2 cada questionamento deverá ser objetivo, exemplos: Como está seu humor? Está se sentindo pressionado no trabalho? Está passando por problemas em casa? Tem se exercitado? Como está seu sono? Está se sentindo cansado? Como está sua carga de trabalho? Tem procrastinado suas tarefas? etc;
+	4.2 cada questionamento deverá ser objetivo. Caso a persona inicie uma nova conversa no mesmo dia, a pergunta inicial deverá ser alterada randomicamente e não utilizar a mesma que já foi utilizada no dia;
 	4.3 o mentor de IA deverá interpretar interações em linguagem natural (via LLM) para capturar o sentimento de forma fluida, mas também dar até 4 sugestões de respostas curtas caso o colaborador prefira selecionar uma, ou então não responder;
 	4.4 quando finalizar todos os questionamentos da semana, o mentor deverá gerar uma nova lista, de acordo com o perfil atualizado da persona do colaborador (manter a memória de eixos gerados e das respostas para a persona);
 5. De acordo com a resposta da persona, o mentor de IA deverá relacionar a resposta ao eixo de acompanhamento e realizar uma acurácia de adesão ao esperado para o eixo;
@@ -32,7 +32,8 @@ Fluxo Principal
 	8.4 o que levou o mentor de IA a propor essa sugestão e
 	8.3 os pontos de melhoria que a sugestão refletirá no bem-estar e qualidade de vida do colaborador
 10. O mentor de IA deverá questionar ao colaborador se ele quer informar mais alguma coisa sobre seu bem-estar atual.
-11. Caso o colaborador queira informar o mentor processa a resposta e executa o fluxo novamente a partir do passo 5; Caso contrário o mentor de IA deseja um bom dia/tarde/noite ao colaborador e encerra o fluxo.
+11. Caso o colaborador queira informar, o mentor processa a resposta e executa o fluxo novamente a partir do passo 5; Caso contrário, encerra o fluxo.
+12. O aplicativo móvel deverá possuir uma opção para o colaborador exibir o histórico da sua persona, visualizando sua evolução diária e interações passadas.
 
 Fluxo alternativo
 
@@ -59,6 +60,7 @@ Plataforma Analítica
 		2.1.2 Gráfico de Tendência (Linhas): evolução longitudinal da saúde e do engajamento ao longo do tempo (base para análise preditiva);
 		2.1.3 Mapa de Calor (Heatmap): concentração de anomalias ou riscos psicossociais cruzados por perfis agrupados;
 		2.1.4 Gráfico de Barras: nível de eficácia e adesão às sugestões propostas pela IA;
+		2.1.5 Filtro de consulta do histórico de evolução das categorias por mês;
 	2.2 para cada categoria (Gêmeo Digital Organizacional), visualizar as sugestões estratégicas de melhoria geradas pela IA para apoio à tomada de decisão organizacional.
 
 

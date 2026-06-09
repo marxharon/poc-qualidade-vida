@@ -8,7 +8,7 @@ export default function LoginScreen({ navigation }) {
       <Text style={styles.subtitle}>Bem-estar e Qualidade de Vida</Text>
       <Button title="Entrar (Acesso Serpro)" onPress={() => navigation.navigate('Onboarding')} />
       <View style={{ marginTop: 20 }}>
-        <Button title="Já tenho Persona (Ir para o Chat)" onPress={() => navigation.navigate('DailyChat')} color="#28a745" />
+        <Button title="Já tenho Persona (Ir para o Chat)" onPress={() => navigation.navigate('SelectPersona')} color="#28a745" />
       </View>
     </View>
   );

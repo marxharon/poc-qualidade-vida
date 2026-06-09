@@ -40,7 +40,7 @@ export default function OnboardingScreen({ navigation }) {
       console.log('Resposta do backend:', response.data);
       if (response.data.success) {
         showAlert('Sucesso!', 'Sua Persona foi inicializada! Vamos ao chat diário.');
-        navigation.replace('DailyChat'); // Muda de tela e impede voltar ao onboarding
+        navigation.replace('DailyChat', { id_persona: response.data.persona.id_persona }); // Passa a identidade correta
       }
     } catch (error) {
       showAlert('Erro', 'Ocorreu um erro na comunicação com o servidor. Verifique se o backend está rodando.');

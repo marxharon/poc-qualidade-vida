@@ -1,5 +1,6 @@
 import { db } from '../db/index.js';
-import { colaboradores, personas } from '../db/schema.js';
+import { colaboradores, personas, interacoes } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 import axios from 'axios';
 
 export const createPersona = async (req, res) => {
@@ -39,5 +40,26 @@ export const createPersona = async (req, res) => {
     } catch (error) {
         console.error('Erro ao criar persona:', error);
         res.status(500).json({ success: false, message: 'Erro interno no servidor' });
+    }
+};
+
+export const getPersonas = async (req, res) => {
+    try {
+        const list = await db.select().from(personas);
+        res.status(200).json({ success: true, personas: list });
+    } catch (error) {
+        console.error('Erro ao buscar personas:', error);
+        res.status(500).json({ success: false, message: 'Erro ao buscar personas' });
+    }
+};
+
+export const getPersonaHistory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const history = await db.select().from(interacoes).where(eq(interacoes.id_persona, parseInt(id)));
+        res.status(200).json({ success: true, history });
+    } catch (error) {
+        console.error('Erro ao buscar histórico:', error);
+        res.status(500).json({ success: false, message: 'Erro ao buscar histórico' });
     }
 };
