@@ -22,3 +22,14 @@ app.use('/api/dashboard', dashboardRoutes);
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+import cors from 'cors';
+
+// Permite acesso do seu frontend publicado e do app local
+app.use(cors({
+  origin: [
+    'http://localhost:3001', // Frontend local
+    'https://beqv-dashboard.onrender.com' // Seu frontend no Render (substitua pela URL real)
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));

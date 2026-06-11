@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolução Longitudinal - Categorias ESG</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f4f4f9; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        p { text-align: center; color: #666; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Evolução Longitudinal da Pontuação (RM-ANOVA)</h2>
+        <p>Acompanhamento da progressão dos Gêmeos Organizacionais ao longo dos meses simulados.</p>
+        <canvas id="graficoEvolucao"></canvas>
+    </div>
+    <script>
+        const ctx = document.getElementById('graficoEvolucao').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ["2026-01","2026-02","2026-03","2026-04","2026-05"],
+                datasets: [{"label":"Tendência ao Burnout","data":[92,60,80,92,59],"fill":false,"borderColor":"hsl(0, 70%, 50%)","backgroundColor":"hsl(0, 70%, 50%)","tension":0.1},{"label":"Sedentarismo e Saúde Física","data":[80,92,60,80,92],"fill":false,"borderColor":"hsl(36, 70%, 50%)","backgroundColor":"hsl(36, 70%, 50%)","tension":0.1},{"label":"Problemas de Relacionamento na Equipe","data":[59,79,93,60,80],"fill":false,"borderColor":"hsl(72, 70%, 50%)","backgroundColor":"hsl(72, 70%, 50%)","tension":0.1},{"label":"Tendência à Procrastinação","data":[59,79,92,60,79],"fill":false,"borderColor":"hsl(108, 70%, 50%)","backgroundColor":"hsl(108, 70%, 50%)","tension":0.1},{"label":"Desmotivação e Baixo Engajamento","data":[59,79,92,60,79],"fill":false,"borderColor":"hsl(144, 70%, 50%)","backgroundColor":"hsl(144, 70%, 50%)","tension":0.1},{"label":"Insegurança Psicológica","data":[80,92,60,80,92],"fill":false,"borderColor":"hsl(180, 70%, 50%)","backgroundColor":"hsl(180, 70%, 50%)","tension":0.1},{"label":"Isolamento no Trabalho Remoto/Híbrido","data":[79,92,59,80,92],"fill":false,"borderColor":"hsl(216, 70%, 50%)","backgroundColor":"hsl(216, 70%, 50%)","tension":0.1},{"label":"Insatisfação com Reconhecimento","data":[93,59,79,92,59],"fill":false,"borderColor":"hsl(252, 70%, 50%)","backgroundColor":"hsl(252, 70%, 50%)","tension":0.1},{"label":"Desequilíbrio Vida-Trabalho","data":[79,92,59,80,92],"fill":false,"borderColor":"hsl(288, 70%, 50%)","backgroundColor":"hsl(288, 70%, 50%)","tension":0.1},{"label":"Falta de Perspectiva de Crescimento","data":[80,92,60,80,92],"fill":false,"borderColor":"hsl(324, 70%, 50%)","backgroundColor":"hsl(324, 70%, 50%)","tension":0.1}]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { min: 0, max: 100, title: { display: true, text: 'Pontuação Agregada' } },
+                    x: { title: { display: true, text: 'Mês (Ano-Mês)' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

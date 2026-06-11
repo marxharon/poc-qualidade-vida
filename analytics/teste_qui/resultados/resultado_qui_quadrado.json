@@ -1,0 +1,60 @@
+{
+    "estatisticas": {
+        "valor_chi_quadrado": "13.5270",
+        "graus_de_liberdade": 18,
+        "total_interacoes": 13252
+    },
+    "diagnostico_ia": "INDEPENDENTES. As flutuações entre eixos são condizentes com o acaso. O eixo ESG não altera estatisticamente a probabilidade do tipo de feedback (\"Boa\", \"Ruim\", \"Indiferente\").",
+    "tabela_observada": {
+        "Clima organizacional e engajamento": {
+            "Boa": 430,
+            "Indiferente": 433,
+            "Ruim": 462
+        },
+        "Desenvolvimento e crescimento profissional": {
+            "Boa": 448,
+            "Indiferente": 398,
+            "Ruim": 462
+        },
+        "Diversidade, equidade e inclusão (DEI)": {
+            "Boa": 542,
+            "Indiferente": 532,
+            "Ruim": 503
+        },
+        "Equilíbrio entre vida pessoal e profissional (work-life balance)": {
+            "Boa": 470,
+            "Indiferente": 465,
+            "Ruim": 460
+        },
+        "Qualidade das relações interpessoais": {
+            "Boa": 377,
+            "Indiferente": 377,
+            "Ruim": 340
+        },
+        "Reconhecimento e recompensas": {
+            "Boa": 412,
+            "Indiferente": 411,
+            "Ruim": 429
+        },
+        "Saúde física": {
+            "Boa": 532,
+            "Indiferente": 508,
+            "Ruim": 513
+        },
+        "Saúde mental e emocional": {
+            "Boa": 409,
+            "Indiferente": 405,
+            "Ruim": 394
+        },
+        "Segurança e saúde ocupacional": {
+            "Boa": 437,
+            "Indiferente": 388,
+            "Ruim": 424
+        },
+        "Segurança psicológica e cultura de escuta": {
+            "Boa": 424,
+            "Indiferente": 426,
+            "Ruim": 441
+        }
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "modelo": "Regressão Logística Binária Customizada",
+    "descricao_X": "Frequência Relativa de Feedbacks/Sentimentos Negativos no Mês (t)",
+    "descricao_Y": "Queda na Média Agregada do Score ESG no Mês Seguinte (t+1)",
+    "parametros_descobertos": {
+        "intercepto_w0": -4.5663853171256825,
+        "peso_w1": 10.45343460175227
+    },
+    "diagnostico_ia": "CORRELAÇÃO POSITIVA: O modelo indica que o aumento da negatividade (X) eleva expressivamente a probabilidade de declínio real de engajamento (Y) no mês subsequente."
+}
