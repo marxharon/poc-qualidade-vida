@@ -23,8 +23,6 @@ app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
 
-import cors from 'cors';
-
 // Permite acesso do seu frontend publicado e do app local
 app.use(cors({
   origin: [
