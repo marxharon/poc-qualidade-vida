@@ -1,0 +1,13 @@
+{
+  "name": "analise-variancia-anova",
+  "version": "1.0.0",
+  "description": "Script de Análise de Variância de Medidas Repetidas (RM-ANOVA) para progressão longitudinal ESG",
+  "type": "module",
+  "scripts": {
+    "start": "node anova_rm.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "dotenv": "^16.4.5"
+  }
+}

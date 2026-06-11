@@ -1,0 +1,13 @@
+{
+  "name": "analise-qui-quadrado",
+  "version": "1.0.0",
+  "description": "Script de Teste Qui-Quadrado de Independência para avaliar dependência entre Eixo ESG e Aceite de Sugestão",
+  "type": "module",
+  "scripts": {
+    "start": "node chi_square.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "dotenv": "^16.4.5"
+  }
+}
