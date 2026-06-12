@@ -10,8 +10,20 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Permite acesso do seu frontend publicado e do app local (Configurado ANTES das rotas)
+app.use(cors({
+  origin: [
+    'http://localhost:3001', // Frontend local
+    'https://beqv-dashboard.onrender.com' // Seu frontend no Render
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
 app.use(express.json());
+
+// Rota raiz para verificações de Health Check do Render
+app.get('/', (req, res) => {
+    res.status(200).send('API BEQV operando com sucesso!');
+});
 
 app.use('/api/health', healthRoutes);
 app.use('/api/personas', personaRoutes);
@@ -22,12 +34,3 @@ app.use('/api/dashboard', dashboardRoutes);
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
-
-// Permite acesso do seu frontend publicado e do app local
-app.use(cors({
-  origin: [
-    'http://localhost:3001', // Frontend local
-    'https://beqv-dashboard.onrender.com' // Seu frontend no Render (substitua pela URL real)
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-}));
