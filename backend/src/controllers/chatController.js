@@ -41,7 +41,8 @@ export const respondToChat = async (req, res) => {
         const id_eixo = eixos.length > 0 ? eixos[0].id_eixo : 2;
 
         // Envia para a Inteligência Artificial pensar e salvar a memória
-        const iaResponse = await axios.post('http://localhost:3002/api/chat', {
+        const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://localhost:3002/api';
+        const iaResponse = await axios.post(`${iaServiceUrl}/chat`, {
             id_persona, 
             eixoESGSelecionado: eixoSorteado,
             respostaColaboradorNatural: relato
