@@ -48,7 +48,8 @@ export const respondToChat = async (req, res) => {
             respostaColaboradorNatural: relato
         });
 
-        const sugestao_acao = iaResponse.data.data.sugestao_acao;
+        // Flexibiliza a leitura dependendo de como o ia-service devolve o JSON
+        const sugestao_acao = iaResponse.data?.data?.sugestao_acao || iaResponse.data?.sugestao_acao || "Sugestão padrão acolhedora gerada (IA retornou formato inesperado).";
         const percentual_adesao = Math.floor(Math.random() * 20) + 75; // Predição mockada para a POC
 
         // SALVAR NA TABELA: É isso que fará o Histórico da Persona carregar os dados!
@@ -67,8 +68,12 @@ export const respondToChat = async (req, res) => {
             percentual_adesao 
         });
     } catch (error) {
-        console.error("Erro na integração com IA:", error);
-        res.status(500).json({ error: "Erro ao consultar a Inteligência Artificial." });
+        console.error("Erro na integração com IA:", error.message, error.response?.data);
+        res.status(500).json({ 
+            error: "Erro ao consultar a Inteligência Artificial.", 
+            details: error.message,
+            ia_service_response: error.response?.data || null
+        });
     }
 };
 
