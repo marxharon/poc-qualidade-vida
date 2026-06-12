@@ -20,9 +20,10 @@ app.post('/api/twin', async (req, res) => {
 });
 
 app.post('/api/chat', async (req, res) => {
+    let resposta = "";
     try {
         const { id_persona, eixoESGSelecionado, respostaColaboradorNatural } = req.body;
-        const resposta = await dailyInteraction(id_persona, eixoESGSelecionado, respostaColaboradorNatural);
+        resposta = await dailyInteraction(id_persona, eixoESGSelecionado, respostaColaboradorNatural);
         
         // Tratamento de segurança: remove crases de marcação Markdown caso a IA as inclua (ex: ```json ... ```)
         let cleanResponse = resposta;
@@ -34,8 +35,11 @@ app.post('/api/chat', async (req, res) => {
         
         res.json({ success: true, data: JSON.parse(cleanResponse) });
     } catch (error) {
-        console.error("Erro na interação do Chat:", error);
-        res.status(500).json({ error: error.message });
+        console.error("Erro na interação do Chat:", error.message);
+        res.status(500).json({ 
+            error: error.message,
+            raw_ia_response: resposta || "A requisição falhou antes ou durante a resposta da IA."
+        });
     }
 });
 
