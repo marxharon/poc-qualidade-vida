@@ -28,7 +28,8 @@ export const createPersona = async (req, res) => {
 
         // 3. Acionar a IA para criar os Embeddings no ChromaDB
         try {
-            await axios.post('http://localhost:3002/api/twin', {
+            const IA_SERVICE_URL = process.env.IA_SERVICE_URL || 'https://ia-service-h3y5.onrender.com/api';
+            await axios.post(`${IA_SERVICE_URL}/twin`, {
                 id_persona: novaPersona.id_persona,
                 respostasOnboarding: data
             });
