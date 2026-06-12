@@ -14,7 +14,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: [
     'http://localhost:3001', // Frontend local
-    'https://beqv-dashboard.onrender.com' // Seu frontend no Render
+    'https://beqv-dashboard.onrender.com', // Seu frontend no Render
+    'http://localhost:8081' // Expo Web (Navegador)
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
