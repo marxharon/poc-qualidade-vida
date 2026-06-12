@@ -11,7 +11,9 @@ dotenv.config({ path: path.join(__dirname, '../backend/.env') });
 dotenv.config(); // Tenta carregar .env local, se existir
 
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/beqv_db';
-const CHROMADB_URL = process.env.CHROMADB_URL || 'http://localhost:8000';
+const CHROMADB_URL = process.env.CHROMADB_URL || (process.env.USE_LOCAL_SERVICES === 'true' 
+    ? 'http://localhost:8000' 
+    : 'https://beqv-chroma.onrender.com');
 
 const { Client } = pg;
 

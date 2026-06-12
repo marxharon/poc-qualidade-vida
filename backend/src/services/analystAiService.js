@@ -95,7 +95,9 @@ export const runAnalystGrouping = async (dataInicioParam, dataFimParam) => {
         let sugestaoDinamicaIa = '';
         try {
             // Chamada ao serviço de IA para gerar a sugestão estratégica dinamicamente baseada nos dados do Gêmeo Organizacional
-            const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://localhost:3002/api';
+            const iaServiceUrl = process.env.IA_SERVICE_URL || (process.env.USE_LOCAL_SERVICES === 'true' 
+                ? 'http://localhost:3002/api' 
+                : 'https://ia-service-h3y5.onrender.com/api');
             const respostaIa = await axios.post(`${iaServiceUrl}/analyze-group`, {
                 categoria: grupo.nome_categoria,
                 pontuacao_agregada: pontuacao,

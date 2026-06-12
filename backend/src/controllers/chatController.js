@@ -41,7 +41,9 @@ export const respondToChat = async (req, res) => {
         const id_eixo = eixos.length > 0 ? eixos[0].id_eixo : 2;
 
         // Envia para a Inteligência Artificial pensar e salvar a memória
-        const iaServiceUrl = process.env.IA_SERVICE_URL || 'https://ia-service-h3y5.onrender.com/api';
+        const iaServiceUrl = process.env.IA_SERVICE_URL || (process.env.USE_LOCAL_SERVICES === 'true' 
+            ? 'http://localhost:3002/api' 
+            : 'https://ia-service-h3y5.onrender.com/api');
         const iaResponse = await axios.post(`${iaServiceUrl}/chat`, {
             id_persona, 
             eixoESGSelecionado: eixoSorteado,

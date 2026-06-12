@@ -1,8 +1,13 @@
 import { ChromaClient } from 'chromadb';
 import 'dotenv/config';
 
+const CHROMADB_URL = process.env.CHROMADB_URL || (process.env.USE_LOCAL_SERVICES === 'true'
+    ? 'http://localhost:8000'
+    : 'https://beqv-chroma.onrender.com');
+
+
 const chroma = new ChromaClient({
-    path: process.env.CHROMADB_URL || "http://localhost:8000"
+    path: CHROMADB_URL
 });
 
 export const initChromaCollections = async () => {
