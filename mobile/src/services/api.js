@@ -1,9 +1,6 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
 
-// Se for testar no celular (QR Code), troque 'localhost' abaixo pelo IP do seu computador (ex: 192.168.1.15)
-// Para descobrir o IP no Windows, digite 'ipconfig' no terminal.
-const baseURL = Platform.OS === 'web' ? 'http://localhost:3000/api' : 'http://10.0.2.2:3000/api';
+const baseURL = process.env.EXPO_PUBLIC_API_URL || 'https://beqv-backend.onrender.com/api';
 
 const api = axios.create({
   baseURL,
