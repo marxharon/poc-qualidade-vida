@@ -7,24 +7,34 @@ export default function PersonaHistoryScreen({ route }) {
   const [history, setHistory] = useState([]);
   const [persona, setPersona] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [perception, setPerception] = useState(null);
+  const [normalizedProfile, setNormalizedProfile] = useState(null);
 
   useEffect(() => {
     // Busca o histórico e os detalhes base da Persona simultaneamente
     Promise.all([
       api.get(`/personas/${id_persona || 1}/history`),
-      api.get('/personas')
+      api.get('/personas'),
+      api.get(`/chat/perception?id_persona=${id_persona || 1}`).catch(() => ({ data: null }))
     ])
-      .then(([historyRes, personasRes]) => {
+      .then(([historyRes, personasRes, perceptionRes]) => {
         setHistory(historyRes.data.history);
         const currentPersona = personasRes.data?.personas?.find(p => p.id_persona === (id_persona || 1));
         setPersona(currentPersona || null);
+        
+        if (perceptionRes && perceptionRes.data) {
+           setPerception(perceptionRes.data.percepcao);
+           setNormalizedProfile(perceptionRes.data.perfil_normalizado);
+        } else {
+           setPerception("A IA não identificou deslocamentos críticos recentes no seu perfil.");
+        }
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  }, [id_persona]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
@@ -50,7 +60,7 @@ export default function PersonaHistoryScreen({ route }) {
           
           <View style={styles.radarBox}>
               <Text style={styles.radarTitle}>Status Preditivo (Últimos 7 dias)</Text>
-              <Text style={styles.radarHint}>* Este indicador reflete a projeção da Inteligência Artificial sobre as tendências do seu bem-estar corporativo, com base no histórico de suas interações diárias.</Text>
+              <Text style={styles.radarHint}>* A projeção do Status Preditivo indica o nível estimado de aderência da sua persona a cada eixo ESG. O escore percentual é calculado cruzando matematicamente o seu histórico recente de sentimentos (vetores da memória) com os Gêmeos Organizacionais saudáveis, apontando tendências de queda (risco) ou alta (saúde) no seu bem-estar.</Text>
               {mockRadarData.map((item, index) => (
                   <View key={index} style={styles.barRow}>
                       <Text style={styles.barLabel}>{item.eixo}</Text>
@@ -60,12 +70,12 @@ export default function PersonaHistoryScreen({ route }) {
                       <Text style={styles.barScore}>{item.score}%</Text>
                   </View>
               ))}
-              <Text style={styles.radarDisclaimer}>A IA percebeu um deslocamento de risco na sua Carga de Trabalho recente.</Text>
+              <Text style={styles.radarDisclaimer}>{perception || "A IA percebeu um deslocamento de risco na sua Carga de Trabalho recente."}</Text>
           </View>
 
           <View style={styles.profileBox}>
               <Text style={styles.profileTitle}>Perfil Atualizado do Gêmeo (Memória da IA)</Text>
-              <Text style={styles.profileText}><Text style={styles.bold}>Identidade Base:</Text> {persona?.nome_preferido || 'Persona'} - {persona?.personalidade || 'Não informada'}</Text>
+              <Text style={styles.profileText}><Text style={styles.bold}>Identidade Base (Normalizada):</Text> {normalizedProfile || persona?.nome_preferido + ' - ' + persona?.personalidade}</Text>
               <Text style={styles.profileText}><Text style={styles.bold}>Última Atualização de Sentimento:</Text> {history.length > 0 ? history[0].resposta_colaborador : 'Nenhuma memória recente capturada.'}</Text>
           </View>
 

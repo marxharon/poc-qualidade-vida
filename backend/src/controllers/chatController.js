@@ -66,17 +66,22 @@ export const respondToChat = async (req, res) => {
                 id_persona, 
                 eixoESGSelecionado: "A classificar",
                 respostaColaboradorNatural: relato
-            });
+            }, { timeout: 12000 }); // Limite de 12s para evitar Network Error do App
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service. Ativando Airbag de Chat.", iaError.message);
-            iaResponse = { data: { resposta_chat: "Tive um pequeno lapso de conexão aqui. Você poderia me contar um pouco mais sobre isso?", sugestao_final: "Lembre-se de fazer uma pausa e respirar fundo.", eixo_identificado: "Saúde mental e emocional" } };
+            iaResponse = { data: { resposta_chat: "Tive um pequeno lapso de conexão aqui. Você poderia me contar um pouco mais sobre isso?", sugestao_final: "fazer uma pausa e respirar fundo", eixo_identificado: "Saúde mental e emocional" } };
         }
 
         // Flexibiliza a leitura dependendo de como o ia-service devolve o JSON
-        const resposta_chat = iaResponse.data?.resposta_chat || iaResponse.data?.sugestao_acao || "Pode me falar mais sobre isso?";
-        const sugestao_acao = iaResponse.data?.sugestao_final || iaResponse.data?.sugestao_acao || "Sugestão padrão acolhedora gerada (IA retornou formato inesperado).";
-        const eixoIdentificado = iaResponse.data?.eixo_identificado || "Saúde mental e emocional";
+        let resposta_chat = String(iaResponse.data?.resposta_chat || iaResponse.data?.sugestao_acao || "Pode me falar mais sobre isso?");
+        const sugestao_acao = String(iaResponse.data?.sugestao_final || iaResponse.data?.sugestao_acao || "fazer uma pausa estratégica e respirar fundo");
+        const eixoIdentificado = String(iaResponse.data?.eixo_identificado || "Saúde mental e emocional");
         const percentual_adesao = Math.floor(Math.random() * 20) + 75; // Predição mockada para a POC
+
+        if (!resposta_chat.toLowerCase().includes("que tal")) {
+            const sugestaoFormatada = sugestao_acao.charAt(0).toLowerCase() + sugestao_acao.slice(1);
+            resposta_chat = `${resposta_chat.trim()} Que tal ${sugestaoFormatada.replace(/\.$/, '')}?`;
+        }
 
         const eixos = await db.select().from(eixosESG);
         let id_eixo = 2; // Default
@@ -137,5 +142,32 @@ export const submitFeedback = async (req, res) => {
         res.status(200).json({ success: true });
     } catch (e) {
         res.status(500).json({ success: false });
+    }
+};
+
+export const analyzeSuggestion = async (req, res) => {
+    try {
+        const { id_persona, sugestao } = req.query;
+        const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
+        const iaResponse = await axios.post(`${iaServiceUrl}/analyze-suggestion`, { id_persona, sugestao });
+        res.status(200).json({ motivo: iaResponse.data.motivo });
+    } catch (error) {
+        console.error("Erro na Análise de Sugestão:", error.message);
+        res.status(500).json({ error: "Erro ao consultar a IA." });
+    }
+};
+
+export const getPerception = async (req, res) => {
+    try {
+        const { id_persona } = req.query;
+        const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
+        const iaResponse = await axios.post(`${iaServiceUrl}/perception`, { id_persona });
+        res.status(200).json({ 
+            percepcao: iaResponse.data.percepcao,
+            perfil_normalizado: iaResponse.data.perfil_normalizado
+        });
+    } catch (error) {
+        console.error("Erro na geração da percepção:", error.message);
+        res.status(500).json({ error: "Erro ao consultar a IA." });
     }
 };

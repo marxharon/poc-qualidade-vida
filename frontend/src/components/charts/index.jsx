@@ -12,7 +12,6 @@ export default function DashboardPreditivo() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Chama especificamente o serviço de IA na porta 3002
         const response = await iaApi.post('/semantic-clustering', {});
         if (response.data && response.data.clusters) {
           const formattedData = response.data.clusters.map((c, index) => ({
@@ -45,6 +44,14 @@ export default function DashboardPreditivo() {
           Monitoramento anonimizado de Gêmeos Digitais Organizacionais baseados em similaridade semântica.
         </p>
       </header>
+
+      {/* Mensagem de Erro de Conexão na Tela */}
+      {errorMsg && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
+          <strong className="font-bold">Aviso de Conexão: </strong>
+          <span className="block sm:inline">{errorMsg}</span>
+        </div>
+      )}
 
       {/* Alerta de IA Estratégico (Simulando o output gerado na Fase 2) */}
       <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-r-md shadow-sm">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 
 // Dados simulados baseados na saída do nosso ia-service (Fase 2)
@@ -29,27 +29,30 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 export default function SemanticScatterChart({ customData }) {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   // Usa os dados reais vindos da API. Se for vazio, exibe o fallback simulado
   const chartData = customData && customData.length > 0 ? customData : defaultData;
 
   return (
-    <div className="w-full h-80 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+    <div className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-100">
       <h3 className="text-lg font-semibold text-gray-700 mb-4">Mapa Vetorial: Deslocamento de Risco Preditivo</h3>
-      <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-          {/* Eixo X: Nível de risco previsto pela IA */}
-          <XAxis type="number" dataKey="risco_burnout" name="Risco Futuro" domain={[0, 100]} label={{ value: "Risco Comportamental (Predição)", position: "insideBottom", offset: -10 }} />
-          {/* Eixo Y: Nível atual de engajamento */}
-          <YAxis type="number" dataKey="engajamento" name="Engajamento" domain={[0, 100]} label={{ value: "Engajamento Atual", angle: -90, position: "insideLeft" }} />
-          {/* ZAxis define o tamanho da bolha baseado na quantidade de pessoas no Gêmeo Organizacional */}
-          <ZAxis type="number" dataKey="volume" range={[100, 1000]} name="Volume" />
-          <Tooltip content={<CustomTooltip />} />
-          {/* Área de Risco Crítico em Vermelho Claro */}
-          <ReferenceArea x1={70} x2={100} y1={0} y2={50} fill="#fee2e2" opacity={0.5} />
-          <Scatter name="Gêmeos Organizacionais" data={chartData} fill="#8884d8" />
-        </ScatterChart>
-      </ResponsiveContainer>
+      <div style={{ width: '100%', height: 300 }}>
+        {isClient && (
+          <ResponsiveContainer width="99%" height={300}>
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis type="number" dataKey="risco_burnout" name="Risco Futuro" domain={[0, 100]} label={{ value: "Risco Comportamental (Predição)", position: "insideBottom", offset: -10 }} />
+              <YAxis type="number" dataKey="engajamento" name="Engajamento" domain={[0, 100]} label={{ value: "Engajamento Atual", angle: -90, position: "insideLeft" }} />
+              <ZAxis type="number" dataKey="volume" range={[100, 1000]} name="Volume" />
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceArea x1={70} x2={100} y1={0} y2={50} fill="#fee2e2" opacity={0.5} />
+              <Scatter name="Gêmeos Organizacionais" data={chartData} fill="#8884d8" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 }

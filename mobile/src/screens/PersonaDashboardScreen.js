@@ -21,7 +21,7 @@ export default function PersonaDashboardScreen({ route, navigation }) {
                         const last = history[0]; // Pega a última interação
                         setLatestSuggestion({
                             sugestao_acao: last.sugestao_ia,
-                            eixo: last.id_eixo ? `Eixo Monitorado #${last.id_eixo}` : 'Acompanhamento Preditivo',
+                            eixo: last.nome_eixo || (last.id_eixo ? `Eixo Monitorado #${last.id_eixo}` : 'Acompanhamento Preditivo'),
                             percentual_adesao: last.percentual_adesao
                         });
                     }
@@ -69,7 +69,7 @@ export default function PersonaDashboardScreen({ route, navigation }) {
 
             <TouchableOpacity 
                 style={[styles.cardSecondary, !latestSuggestion && styles.cardDisabled]} 
-                onPress={() => latestSuggestion && navigation.navigate('SuggestionDetails', { suggestion: latestSuggestion })}
+                onPress={() => latestSuggestion && navigation.navigate('SuggestionDetails', { suggestion: latestSuggestion, id_persona })}
                 disabled={!latestSuggestion}
             >
                 <Text style={styles.cardIcon}>🔍</Text>

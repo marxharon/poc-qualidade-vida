@@ -2,7 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import { generateInitialDigitalTwin } from './services/digitalTwinGenerator.js';
-import { generatePersonalizedQuestion, processChatInteraction } from './services/conversationalMentor.js';
+import { 
+    generatePersonalizedQuestion, 
+    processChatInteraction,
+    analyzeSuggestionReason,      // <-- Nova importação
+    generatePerceptionAndProfile  // <-- Nova importação
+} from './services/conversationalMentor.js';
 import { discoverOrganicClusters } from './services/semanticClustering.js';
 
 const app = express();
@@ -65,6 +70,31 @@ app.post('/api/semantic-clustering', async (req, res) => {
     } catch (error) {
         console.error("Erro na rota /semantic-clustering:", error.message);
         res.status(500).json({ error: "Falha ao executar o motor preditivo de clustering vetorial." });
+    }
+});
+
+// NOVAS ROTAS ADICIONADAS
+// POST /api/analyze-suggestion
+app.post('/api/analyze-suggestion', async (req, res) => {
+    try {
+        const { id_persona, sugestao } = req.body;
+        const result = await analyzeSuggestionReason(id_persona, sugestao);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("Erro na rota /api/analyze-suggestion:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /api/perception
+app.post('/api/perception', async (req, res) => {
+    try {
+        const { id_persona } = req.body;
+        const result = await generatePerceptionAndProfile(id_persona);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("Erro na rota /api/perception:", error);
+        res.status(500).json({ error: error.message });
     }
 });
 

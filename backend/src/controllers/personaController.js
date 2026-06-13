@@ -1,6 +1,6 @@
 import { db } from '../db/index.js';
-import { colaboradores, personas, interacoes } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { colaboradores, personas, interacoes, eixosESG } from '../db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 import axios from 'axios';
 
 export const createPersona = async (req, res) => {
@@ -59,7 +59,20 @@ export const getPersonas = async (req, res) => {
 export const getPersonaHistory = async (req, res) => {
     try {
         const { id } = req.params;
-        const history = await db.select().from(interacoes).where(eq(interacoes.id_persona, parseInt(id)));
+        const historyRaw = await db.select()
+            .from(interacoes)
+            .where(eq(interacoes.id_persona, parseInt(id)))
+            .orderBy(desc(interacoes.id_interacao)); // Garante que a última sugestão venha primeiro
+            
+        const eixos = await db.select().from(eixosESG);
+        const history = historyRaw.map(h => {
+            const eixo = eixos.find(e => e.id_eixo === h.id_eixo);
+            return {
+                ...h,
+                nome_eixo: eixo ? eixo.nome : null
+            };
+        });
+        
         res.status(200).json({ success: true, history });
     } catch (error) {
         console.error('Erro ao buscar histórico:', error);
