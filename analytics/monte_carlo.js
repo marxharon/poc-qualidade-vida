@@ -18,9 +18,8 @@ const END_DATE = new Date('2026-05-31T12:00:00Z'); // Simulação cobrindo exata
 
 // Conexão com os serviços da POC
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://SEU_USUARIO:SUA_SENHA@localhost:5432/beqv_db';
-const IA_SERVICE_URL = process.env.IA_SERVICE_URL || (process.env.USE_LOCAL_SERVICES === 'true' 
-    ? 'http://localhost:3002/api' 
-    : 'https://ia-service-h3y5.onrender.com/api');
+// Chaveamento de Ambiente: Local por padrão (IA-Service na porta 3002).
+const IA_SERVICE_URL = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const { Client } = pg;

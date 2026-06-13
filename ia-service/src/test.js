@@ -1,5 +1,5 @@
 import { generateInitialDigitalTwin } from './services/digitalTwinGenerator.js';
-import { dailyInteraction } from './services/conversationalMentor.js';
+import { processChatInteraction } from './services/conversationalMentor.js';
 
 async function runTests() {
     console.log("=== INICIANDO TESTES DO SERVIÇO DE IA E CHROMADB ===\n");
@@ -20,7 +20,7 @@ async function runTests() {
         console.log("-> Resumo do Gêmeo gerado no ChromaDB:\n", resumo, "\n");
 
         console.log("2. Testando Interação Diária (Mentor Conversacional)...");
-        const interacao = await dailyInteraction(
+        const interacao = await processChatInteraction(
             101, 
             "Saúde mental e emocional", 
             "Estou me sentindo um pouco ansiosa hoje com a entrega do projeto na sexta."

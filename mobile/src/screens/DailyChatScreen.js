@@ -1,175 +1,228 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity, KeyboardAvoidingView, Platform, Button } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api';
 
 export default function DailyChatScreen({ route, navigation }) {
-  const { id_persona } = route.params || {};
-  const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState('');
-  // Fases: 'QUESTION', 'FEEDBACK', 'LOOP_ASK', 'END'
-  const [flowStep, setFlowStep] = useState('QUESTION'); 
-  const [options, setOptions] = useState([]);
-  const [currentSuggestion, setCurrentSuggestion] = useState(null);
-  const [lastQuestion, setLastQuestion] = useState('');
+    const id_persona = route?.params?.id_persona || 1;
+    
+    const [loading, setLoading] = useState(true);
+    const [messages, setMessages] = useState([]); // Histórico contínuo do chat
+    const [inputText, setInputText] = useState('');
+    const [feedbackGiven, setFeedbackGiven] = useState(false);
+    const [latestSuggestion, setLatestSuggestion] = useState(null);
+    const [showEndSession, setShowEndSession] = useState(false);
+    const scrollViewRef = useRef();
 
-  useEffect(() => {
-    startDailyChat();
-  }, []);
+    // useFocusEffect garante que a tela "zere" a sessão toda vez que for aberta, gerando uma nova pergunta!
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+            
+            const fetchDailyQuestion = async () => {
+                setLoading(true);
+                setMessages([]);
+                setShowEndSession(false);
+                setFeedbackGiven(false);
+                setLatestSuggestion(null);
+                setInputText('');
+                
+                try {
+                    const response = await api.get(`/chat/daily-question?id_persona=${id_persona}`);
+                    if (isActive) {
+                        setMessages([{ id: Date.now().toString(), sender: 'ia', text: response.data.question, options: response.data.options }]);
+                    }
+                } catch (error) {
+                    console.error("Erro ao buscar pergunta da IA:", error);
+                } finally {
+                    if (isActive) setLoading(false);
+                }
+            };
 
-  const addMessage = (text, sender) => {
-    setMessages(prev => [...prev, { id: Date.now().toString() + Math.random(), text, sender }]);
-  };
+            fetchDailyQuestion();
 
-  const startDailyChat = async () => {
-    try {
-      const res = await api.get(`/chat/daily?exclude=${encodeURIComponent(lastQuestion)}`);
-      addMessage(res.data.question, 'bot');
-      setLastQuestion(res.data.question);
-      setOptions(res.data.options);
-      setFlowStep('QUESTION');
-    } catch (error) {
-      addMessage("Olá! Como você está se sentindo hoje em relação ao trabalho?", 'bot');
-      setOptions(["Ótimo", "Estressado", "Cansado", "Tudo tranquilo"]);
-    }
-  };
+            return () => { isActive = false; };
+        }, [id_persona])
+    );
 
-  const handleSendResponse = async (text) => {
-    if (!text.trim()) return;
-    addMessage(text, 'user');
-    setInputText('');
-    setOptions([]);
-
-    if (flowStep === 'QUESTION') {
-      // Envia resposta para análise da IA
-      addMessage("Analisando seu relato...", 'bot');
-      try {
-        const res = await api.post('/chat/respond', { 
-            relato: text, 
-            pergunta_ia: lastQuestion,
-            id_persona 
-        });
-        const { sugestao_acao, eixo, percentual_adesao } = res.data;
+    const handleSendResponse = async (text, msgIdToClearOptions = null) => {
+        if (!text.trim()) return;
         
-        setCurrentSuggestion({ sugestao_acao, eixo, percentual_adesao });
-        addMessage(`Sugestão: ${sugestao_acao}`, 'bot');
+        // Limpa botões caso tenha clicado numa opção para a conversa ficar limpa
+        if (msgIdToClearOptions) {
+            setMessages(prev => prev.map(m => m.id === msgIdToClearOptions ? { ...m, options: [] } : m));
+        }
         
-        // Pede Feedback (Item 8 do Framework)
-        setTimeout(() => {
-          addMessage("Como você avalia essa sugestão?", 'bot');
-          setOptions(["Boa", "Ruim", "Indiferente"]);
-          setFlowStep('FEEDBACK');
-        }, 1000);
-      } catch (e) {
-        console.error("Erro na API de chat:", e);
-        addMessage("Ocorreu um erro ao processar com a IA. Tente enviar novamente.", 'bot');
-        setFlowStep('QUESTION'); // Destrava o fluxo para o usuário tentar novamente
-      }
-    } else if (flowStep === 'FEEDBACK') {
-      // Computa Feedback
-      await api.post('/chat/feedback', { feedback: text, id_persona });
-      addMessage("Obrigado pelo feedback!", 'bot');
-      
-      // Inicia Loop (Itens 10 e 11 do Framework)
-      setTimeout(() => {
-        addMessage("Deseja informar mais alguma coisa sobre seu bem-estar atual?", 'bot');
-        setOptions(["Sim, quero falar mais", "Não, por hoje é só"]);
-        setFlowStep('LOOP_ASK');
-      }, 1000);
-    } else if (flowStep === 'LOOP_ASK') {
-      if (text.includes("Sim")) {
-        addMessage("Pode me contar, estou ouvindo.", 'bot');
-        setOptions([]);
-        setFlowStep('QUESTION'); // Volta o fluxo
-      } else {
-        addMessage("Tenha um excelente dia! Nos falamos depois.", 'bot');
-        setFlowStep('END');
-      }
+        const userMsgId = Date.now().toString();
+        setMessages(prev => [...prev, { id: userMsgId, sender: 'user', text }]);
+        
+        setInputText(''); // Limpa o campo
+        Keyboard.dismiss();
+        setLoading(true);
+        
+        try {
+            const lastQuestion = messages.slice().reverse().find(m => m.sender === 'ia')?.text || "Pergunta do dia";
+
+            const response = await api.post('/chat/respond', {
+                relato: text,
+                pergunta_ia: lastQuestion,
+                id_persona
+            });
+            
+            setLatestSuggestion(response.data);
+            
+            // O retorno da IA vira uma resposta orgânica no bate-papo sem forçar repetição!
+            setMessages(prev => [
+                ...prev,
+                { id: (Date.now() + 1).toString(), sender: 'ia', text: response.data.resposta_chat || response.data.sugestao_acao }
+            ]);
+        } catch (error) {
+            console.error("Erro ao enviar resposta:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFeedback = async (type) => {
+        try {
+            await api.post('/chat/feedback', { feedback: type, id_persona });
+            setFeedbackGiven(true);
+        } catch (error) {
+            console.error("Erro ao enviar feedback:", error);
+        }
+    };
+
+    const renderMessage = (msg) => {
+        if (msg.sender === 'user') {
+            return (
+                <View key={msg.id} style={styles.bubbleUser}>
+                    <Text style={styles.bubbleTextUser}>{msg.text}</Text>
+                </View>
+            );
+        }
+
+        return (
+            <View key={msg.id} style={{ marginBottom: 16 }}>
+                <View style={styles.bubbleIa}>
+                    <Text style={styles.bubbleTextIa}>🤖 {msg.text}</Text>
+                </View>
+
+                {msg.options && msg.options.length > 0 && (
+                    <View style={styles.interactionArea}>
+                        <View style={styles.chipContainer}>
+                            {msg.options.map((opt, idx) => {
+                                return (
+                                    <TouchableOpacity key={idx} style={styles.chip} onPress={() => handleSendResponse(opt, msg.id)}>
+                                        <Text style={styles.chipText}>{opt}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+                )}
+            </View>
+        );
+    };
+
+    if (loading && messages.length === 0) {
+        return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /><Text style={{marginTop: 10}}>Conectando ao Gêmeo Digital...</Text></View>;
     }
-  };
 
-  const handleSkip = () => {
-    addMessage("Prefiro não responder hoje.", 'user');
-    setOptions([]);
-    addMessage("Sem problemas! O importante é você se sentir confortável. Tenha um ótimo dia!", 'bot');
-    setFlowStep('END');
-  };
+    return (
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : null}>
+            <ScrollView 
+                ref={scrollViewRef}
+                onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                contentContainerStyle={styles.chatArea}
+            >
+                {messages.map(renderMessage)}
+                
+                {loading && messages.length > 0 && (
+                    <View style={[styles.bubbleIa, { width: 60, alignItems: 'center' }]}>
+                        <ActivityIndicator size="small" color="#3b82f6" />
+                    </View>
+                )}
 
-  const renderMessage = ({ item }) => (
-    <View style={[styles.messageBubble, item.sender === 'user' ? styles.userBubble : styles.botBubble]}>
-      <Text style={[styles.messageText, item.sender === 'user' ? styles.userText : styles.botText]}>
-        {item.text}
-      </Text>
-    </View>
-  );
+                {/* Botão de Encerrar Sessão (Só aparece após você conversar ao menos 1 vez) */}
+                {!showEndSession && messages.length > 1 && !loading && (
+                    <TouchableOpacity style={styles.endSessionBtn} onPress={() => setShowEndSession(true)}>
+                        <Text style={styles.endSessionBtnText}>🛑 Finalizar conversa por hoje</Text>
+                    </TouchableOpacity>
+                )}
 
-  return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : null}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' }}>
-        <View style={{ flex: 1, marginRight: 5 }}>
-          <Button title="Ver Detalhes (IA)" onPress={() => navigation.navigate('SuggestionDetails', { suggestion: currentSuggestion })} disabled={!currentSuggestion} />
-        </View>
-        <View style={{ flex: 1, marginLeft: 5 }}>
-          <Button title="Avaliar POC" onPress={() => navigation.navigate('FeedbackPOC')} color="#28a745" />
-        </View>
-      </View>
-      <View style={{ paddingHorizontal: 10, paddingBottom: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' }}>
-        <Button title="Ver Histórico da Persona" onPress={() => navigation.navigate('PersonaHistory', { id_persona })} color="#6c757d" />
-      </View>
-      
-      <FlatList
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMessage}
-        contentContainerStyle={{ padding: 10 }}
-      />
+                {showEndSession && latestSuggestion && (
+                    <View style={styles.suggestionBox}>
+                        <Text style={styles.suggestionTitle}>Sua Calibração Diária ({latestSuggestion.eixo})</Text>
+                        <Text style={styles.suggestionText}>{latestSuggestion.sugestao_acao}</Text>
+                        
+                        {!feedbackGiven ? (
+                            <View style={styles.feedbackContainer}>
+                                <Text style={styles.feedbackPrompt}>Esta sugestão de fechamento fez sentido para você?</Text>
+                                <View style={styles.feedbackButtons}>
+                                    <TouchableOpacity style={[styles.fBtn, {backgroundColor: '#10b981'}]} onPress={() => handleFeedback('Boa')}><Text style={styles.fBtnTxt}>👍 Boa</Text></TouchableOpacity>
+                                    <TouchableOpacity style={[styles.fBtn, {backgroundColor: '#f59e0b'}]} onPress={() => handleFeedback('Indiferente')}><Text style={styles.fBtnTxt}>😐 Indiferente</Text></TouchableOpacity>
+                                    <TouchableOpacity style={[styles.fBtn, {backgroundColor: '#ef4444'}]} onPress={() => handleFeedback('Ruim')}><Text style={styles.fBtnTxt}>👎 Ruim</Text></TouchableOpacity>
+                                </View>
+                            </View>
+                        ) : (
+                            <Text style={styles.thankYouText}>Obrigado por ajudar a calibrar o seu Gêmeo Digital!</Text>
+                        )}
+                    </View>
+                )}
 
-      {/* Chips de Resposta Rápida */}
-      {options.length > 0 && (
-        <View style={styles.optionsContainer}>
-          {options.map((opt, idx) => (
-            <TouchableOpacity key={idx} style={styles.chip} onPress={() => handleSendResponse(opt)}>
-              <Text style={styles.chipText}>{opt}</Text>
-            </TouchableOpacity>
-          ))}
-          {flowStep === 'QUESTION' && (
-            <TouchableOpacity style={[styles.chip, { backgroundColor: '#f44336' }]} onPress={handleSkip}>
-              <Text style={[styles.chipText, { color: '#fff' }]}>Pular (Não responder)</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+                {showEndSession && (
+                    <TouchableOpacity style={styles.historyBtn} onPress={() => navigation.navigate('PersonaDashboard', { id_persona })}>
+                        <Text style={styles.historyBtnText}>Voltar ao Menu da Persona</Text>
+                    </TouchableOpacity>
+                )}
+            </ScrollView>
 
-      {/* Input de Texto Livre */}
-      {flowStep !== 'END' && (
-        <View style={styles.inputContainer}>
-          <TextInput 
-            style={styles.textInput} 
-            placeholder="Digite como se sente..." 
-            value={inputText}
-            onChangeText={setInputText}
-          />
-          <TouchableOpacity style={styles.sendButton} onPress={() => handleSendResponse(inputText)}>
-            <Text style={styles.sendButtonText}>Enviar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </KeyboardAvoidingView>
-  );
+            {/* Área de Input de Texto Livre */}
+            {!showEndSession && (
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.textInput}
+                        placeholder="Escreva como você está se sentindo..."
+                        value={inputText}
+                        onChangeText={setInputText}
+                        onSubmitEditing={() => handleSendResponse(inputText)}
+                    />
+                    <TouchableOpacity style={styles.sendButton} onPress={() => handleSendResponse(inputText)} disabled={loading}>
+                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendButtonText}>Enviar</Text>}
+                    </TouchableOpacity>
+                </View>
+            )}
+        </KeyboardAvoidingView>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f2' },
-  messageBubble: { padding: 12, borderRadius: 10, marginVertical: 5, maxWidth: '80%' },
-  botBubble: { backgroundColor: '#e0e0e0', alignSelf: 'flex-start' },
-  userBubble: { backgroundColor: '#0047AB', alignSelf: 'flex-end' },
-  messageText: { fontSize: 16 },
-  botText: { color: '#000' },
-  userText: { color: '#fff' },
-  optionsContainer: { flexDirection: 'row', flexWrap: 'wrap', padding: 10, borderTopWidth: 1, borderColor: '#ccc' },
-  chip: { backgroundColor: '#ddd', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, margin: 4 },
-  chipText: { fontSize: 14, color: '#333' },
-  inputContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff', alignItems: 'center' },
-  textInput: { flex: 1, backgroundColor: '#f9f9f9', borderRadius: 20, paddingHorizontal: 15, height: 40, borderWidth: 1, borderColor: '#eee' },
-  sendButton: { marginLeft: 10, backgroundColor: '#0047AB', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 20 },
-  sendButtonText: { color: '#fff', fontWeight: 'bold' }
+    container: { flex: 1, backgroundColor: '#f3f4f6' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    chatArea: { padding: 20, paddingBottom: 40 },
+    bubbleIa: { backgroundColor: '#e0e7ff', padding: 16, borderRadius: 16, borderBottomLeftRadius: 4, marginBottom: 8, alignSelf: 'flex-start', maxWidth: '85%' },
+    bubbleTextIa: { fontSize: 16, color: '#1e40af', lineHeight: 22 },
+    bubbleUser: { backgroundColor: '#3b82f6', padding: 16, borderRadius: 16, borderBottomRightRadius: 4, marginBottom: 16, alignSelf: 'flex-end', maxWidth: '85%' },
+    bubbleTextUser: { fontSize: 16, color: '#ffffff', lineHeight: 22 },
+    interactionArea: { marginBottom: 16 },
+    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+    chip: { backgroundColor: '#ffffff', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: '#d1d5db', margin: 4 },
+    chipText: { color: '#374151', fontSize: 14, fontWeight: '500' },
+    inputContainer: { flexDirection: 'row', padding: 16, backgroundColor: '#ffffff', borderTopWidth: 1, borderColor: '#e5e7eb' },
+    textInput: { flex: 1, backgroundColor: '#f3f4f6', borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: '#1f2937', minHeight: 45 },
+    sendButton: { backgroundColor: '#3b82f6', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, borderRadius: 20, marginLeft: 10 },
+    sendButtonText: { color: '#ffffff', fontWeight: 'bold' },
+    suggestionBox: { backgroundColor: '#ffffff', padding: 20, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 16 },
+    suggestionTitle: { fontSize: 12, fontWeight: 'bold', color: '#6366f1', textTransform: 'uppercase', marginBottom: 8 },
+    suggestionText: { fontSize: 15, color: '#374151', lineHeight: 22, fontStyle: 'italic' },
+    feedbackContainer: { marginTop: 20, borderTopWidth: 1, borderColor: '#f3f4f6', paddingTop: 16 },
+    feedbackPrompt: { fontSize: 13, color: '#6b7280', textAlign: 'center', marginBottom: 12 },
+    feedbackButtons: { flexDirection: 'row', justifyContent: 'space-between' },
+    fBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
+    fBtnTxt: { color: '#ffffff', fontWeight: 'bold', fontSize: 12 },
+    thankYouText: { marginTop: 20, fontSize: 14, color: '#10b981', textAlign: 'center', fontWeight: 'bold' },
+    historyBtn: { marginTop: 30, backgroundColor: '#1f2937', padding: 14, borderRadius: 12, alignItems: 'center' },
+            historyBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
+            endSessionBtn: { marginTop: 16, backgroundColor: '#fee2e2', padding: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#f87171' },
+            endSessionBtnText: { color: '#b91c1c', fontWeight: 'bold', fontSize: 14 }
 });

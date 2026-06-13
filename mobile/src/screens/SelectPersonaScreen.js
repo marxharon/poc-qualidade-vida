@@ -23,7 +23,7 @@ export default function SelectPersonaScreen({ navigation }) {
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.card} 
-            onPress={() => navigation.navigate('DailyChat', { id_persona: item.id_persona })}
+            onPress={() => navigation.navigate('PersonaDashboard', { id_persona: item.id_persona })}
           >
             <Text style={styles.name}>{item.nome_preferido || `Persona #${item.id_persona}`}</Text>
             <Text style={styles.desc}>{item.personalidade || 'Sem descrição definida.'}</Text>

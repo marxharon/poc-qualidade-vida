@@ -1,0 +1,156 @@
+Modelo do Framework - V2 (Atualizado para Gêmeos Digitais Preditivos e Dinâmicos)
+
+Aplicativo Móvel
+
+Fluxo Principal
+
+1. O colaborador acessa o app via tela de login
+2. No primeiro acesso, o colaborador deverá definir sua Persona (Gêmeo Digital Base) preenchendo um pequeno questionário:
+	2.1 como quer ser chamado;
+	2.2 características da sua personalidade;
+	2.3 o que gosta de fazer;
+	2.4 o que não gosta de fazer;
+	2.5 como se relaciona com seus colegas de trabalho
+	2.6 como se sente realizando o seu trabalho
+	2.7 qual suas motivações para realizar seu trabalho
+	2.8 quais suas principais expertises (hardskills e softskills) 
+3. Após o preenchimento da Persona, o mentor de IA deverá usar as informações fornecidas pelo colaborador e gerar o "Gêmeo Digital Semântico" no banco vetorial, retendo a essência profunda da personalidade normalizada;
+4. O mentor de IA deverá consultar ativamente o Gêmeo Digital no banco vetorial (ChromaDB) antes de cada interação. Cruzando a essência da persona com seu histórico de interações, o mentor formulará dinamicamente uma pergunta inicial altamente personalizada:
+	4.1 a pergunta deverá estar implicitamente atrelada a um eixo ESG de acompanhamento, mas sua linguagem refletirá o estilo e momento do colaborador;
+	4.2 a pergunta nunca será igual ou retirada de uma lista estática. Caso a persona inicie uma nova conversa no mesmo dia, a IA avaliará o contexto recente para gerar uma nova abordagem lógica;
+	4.3 o mentor de IA deverá interpretar interações em linguagem natural (via LLM) para capturar o sentimento de forma fluida, oferecendo também até 4 sugestões dinâmicas de respostas curtas geradas no contexto da pergunta;
+5. De acordo com a resposta da persona, o mentor de IA atualizará o Gêmeo Digital (recalculando seu vetor no espaço semântico) para que o Gêmeo "evolua" e "sinta" os impactos do dia a dia, medindo também a adesão ao eixo ESG avaliado;
+6. O mentor de IA deverá atualizar o perfil histórico da Persona de forma perene no banco vetorial.
+7. Como um analista em ESG, o mentor de IA deverá dar uma sugestão de ação para a persona de acordo com a atualização do perfil da Persona dele:
+	7.1 primeiramente em relação ao eixo de acompanhamento que a resposta está vinculada, nunca de forma crítica, mas sempre tendo o cuidado de acolhimento e proposta de melhoria contínua;
+	7.2 em segundo, verificar outros pontos que podem estar piorando o bem-estar e a qualidade de vida do colaborador (baseando-se em sua personalidade) e sugerir ações curtas e objetivas de melhoria;
+8. Ao dar a sugestão o colaborador deverá indicar se a sugestão foi boa, ruim ou indiferente
+9. O colaborador poderá consultar as sugestões do mentor de IA para sua Persona
+	8.1 as sugestões deverão exibir o eixo de acompanhamento de ESG vinculado
+	8.2 seu percentual de adesão ao eixo
+	8.4 o que levou o mentor de IA a propor essa sugestão e
+	8.3 os pontos de melhoria que a sugestão refletirá no bem-estar e qualidade de vida do colaborador
+10. O mentor de IA deverá questionar ao colaborador se ele quer informar mais alguma coisa sobre seu bem-estar atual.
+11. Caso o colaborador queira informar, o mentor processa a resposta e executa o fluxo novamente a partir do passo 5; Caso contrário, encerra o fluxo.
+12. O aplicativo móvel deverá possuir uma aba analítica de autoconhecimento ("Meu Gêmeo Digital") para o colaborador exibir o histórico da sua persona, visualizando graficamente sua evolução diária e o status de bem-estar nos eixos ESG com base na interpretação preditiva do vetor de suas interações passadas.
+
+Fluxo alternativo
+
+1. Quando não for o primeiro acesso, o mentor de IA já deve enviar uma mensagem push para o app do Colaborador em um horário aleatório entre 8h e 18h com a abordagem dinâmica do dia e executar o fluxo principal a partir do item 4.
+
+
+Analista IA de bem-estar e qualidade de vida (Motor Preditivo)
+
+1. O app do colaborador enviará os Gêmeos Digitais individuais de forma TOTALMENTE ANONIMIZADA e agregada para o agente "Analista IA de bem-estar e qualidade de vida" (IA BEQV);
+2. O IA BEQV utilizará similaridade vetorial matemática para identificar a proximidade entre os sentimentos e personalidades de toda a empresa, em vez de recorrer a tabelas relacionais fixas;
+3. O IA BEQV agrupará orgânica e dinamicamente as personas com Gêmeos Digitais semelhantes em "Clusters Comportamentais" (ex: "Jovens talentos altamente produtivos mas com ansiedade noturna"), superando as limitações de categorias tradicionais (como "Sedentarismo" genérico);
+	3.1 A partir desses agrupamentos semânticos, a IA modela e batiza os "Gêmeos Digitais Organizacionais", representando coletivos reais de funcionários;
+4. O IA BEQV aplicará modelos de análise de predição sobre os vetores desses Gêmeos Organizacionais para simular e identificar trajetórias de risco, respondendo a perguntas como: "Qual a chance deste grupo desenvolver Burnout coletivo nos próximos 3 meses?";
+5. Manter um histórico longitudinal contínuo (fotografia de estado) da evolução de cada Gêmeo Organizacional;
+6. Não é permitido detalhar a persona individual em nenhuma etapa; o sistema assegura a blindagem da identidade e expõe unicamente o comportamento de grupo (Gêmeo Organizacional);
+7. Gerar para cada Gêmeo Organizacional sugestões preditivas e sistêmicas de ações de melhoria corporativa para a tomada de decisão do gestor.
+
+
+Plataforma Analítica do Gestor
+
+1. O gestor realiza o login na plataforma
+2. É exibido um dashboard analítico focado em predição e análise de tendências orgânicas:
+	2.1 seleção de gráficos e representações visuais dos Gêmeos Digitais (agrupamentos) de análise de bem-estar e qualidade de vida;
+		2.1.1 Gráfico de Dispersão Semântico (Mapa Vetorial): Visualização de onde os Gêmeos Organizacionais estão concentrados atualmente e o rastreio da movimentação deles em direção a eixos de saúde ou de risco;
+		2.1.2 Gráfico de Tendência Preditiva (Linhas): Evolução longitudinal da saúde dos clusters aliada a previsões de Monte Carlo geradas pela IA projetando o cenário provável para o trimestre seguinte;
+		2.1.3 Gráfico de Radar: comparativo do estado atual dos 10 eixos de ESG mapeados vs. o estado ideal da organização;
+		2.1.4 Mapa de Calor (Heatmap): concentração de anomalias emergentes descobertas pela similaridade vetorial cruzada com perfis departamentais ou tempo de empresa;
+		2.1.5 Gráfico de Barras: nível de eficácia e adesão às sugestões propostas pela IA;
+		2.1.6 Filtro temporal de histórico de evolução;
+	2.2 para cada Gêmeo Digital Organizacional, visualizar as sugestões estratégicas preventivas geradas pela simulação de cenários da IA para antecipar crises e promover qualidade de vida.
+
+
+Eixos de Acompanhamento para indicadores de bem-estar e qualidade de vida dos colaboradores
+
+1. Saúde física
+Avalia condições gerais de saúde e prevenção de doenças.
+
+Taxa de absenteísmo por doença
+Número de afastamentos médicos
+Adesão a programas de saúde (vacinação, check-up)
+Índice ergonômico (adequação de postos de trabalho)
+
+
+2. Saúde mental e emocional
+Foca no equilíbrio psicológico e prevenção de transtornos.
+
+Índice de estresse e burnout (pesquisas internas)
+Utilização de apoio psicológico/benefícios de terapia
+Taxa de afastamento por transtornos mentais
+Nível de bem-estar emocional percebido
+
+
+3. Clima organizacional e engajamento
+Mede o ambiente de trabalho e a motivação dos colaboradores.
+
+Índice de engajamento (eNPS – employee Net Promoter Score)
+Resultados de pesquisas de clima organizacional
+Taxa de rotatividade voluntária (turnover)
+Índice de confiança na liderança
+
+
+4. Equilíbrio entre vida pessoal e profissional (work-life balance)
+Avalia a sustentabilidade da jornada de trabalho.
+
+Média de horas extras
+Percentual de colaboradores em regime flexível/híbrido
+Índice de satisfação com carga de trabalho
+Uso de férias e folgas
+
+
+5. Segurança e saúde ocupacional
+Relaciona-se à prevenção de acidentes e riscos no trabalho.
+
+Taxa de acidentes de trabalho (com ou sem afastamento)
+Frequência de incidentes reportados
+Aderência a treinamentos de segurança
+Índice de risco ocupacional
+
+
+6. Diversidade, equidade e inclusão (DEI)
+Reflete a justiça social dentro da organização.
+
+Representatividade (gênero, raça, PCD, etc.) por nível hierárquico
+Índice de equidade salarial
+Percepção de inclusão (pesquisa interna)
+Número de denúncias de discriminação
+
+
+7. Desenvolvimento e crescimento profissional
+Avalia oportunidades de carreira e aprendizado.
+
+Horas de treinamento por colaborador
+Taxa de promoção interna
+Índice de satisfação com desenvolvimento profissional
+Participação em programas de capacitação
+
+
+8. Reconhecimento e recompensas
+Mede a valorização dos colaboradores.
+
+Índice de satisfação com remuneração e benefícios
+Frequência de programas de reconhecimento
+Comparativo salarial com mercado
+Percentual de colaboradores elegíveis a bônus/incentivos
+
+
+9. Qualidade das relações interpessoais
+Avalia o ambiente social e colaboração interna.
+
+Índice de conflitos reportados
+Avaliação de trabalho em equipe
+Nível de colaboração interdepartamental
+Índice de assédio moral/denúncias
+
+10. Segurança psicológica e cultura de escuta
+Mede o quanto os colaboradores se sentem seguros para se expressar e contribuir.
+
+Índice de segurança psicológica (pesquisas internas)
+Taxa de participação em pesquisas e canais de feedback
+Tempo de resposta e resolução de demandas internas
+Percepção de abertura da liderança para ouvir ideias e críticas

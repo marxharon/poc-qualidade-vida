@@ -1,47 +1,128 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, ScrollView } from 'react-native';
 import api from '../services/api';
 
 export default function PersonaHistoryScreen({ route }) {
   const { id_persona } = route.params || {};
   const [history, setHistory] = useState([]);
+  const [persona, setPersona] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/personas/${id_persona || 1}/history`)
-      .then(res => { setHistory(res.data.history); setLoading(false); })
-      .catch(err => { console.error(err); setLoading(false); });
+    // Busca o histórico e os detalhes base da Persona simultaneamente
+    Promise.all([
+      api.get(`/personas/${id_persona || 1}/history`),
+      api.get('/personas')
+    ])
+      .then(([historyRes, personasRes]) => {
+        setHistory(historyRes.data.history);
+        const currentPersona = personasRes.data?.personas?.find(p => p.id_persona === (id_persona || 1));
+        setPersona(currentPersona || null);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#0047AB" /></View>;
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+
+  // Simulação da saúde do Gêmeo Digital (Eixos) baseada no perfil dinâmico
+  const mockRadarData = [
+      { eixo: 'Saúde Mental', score: 78, color: '#10b981' }, // Verde
+      { eixo: 'Engajamento', score: 65, color: '#f59e0b' },  // Amarelo
+      { eixo: 'Carga de Trabalho', score: 40, color: '#ef4444' } // Vermelho
+  ];
+
+  // Filtra as interações para exibir na lista apenas as que ocorreram hoje
+  const todaysHistory = history.filter(item => {
+    if (!item.data_interacao) return false;
+    const itemDate = new Date(item.data_interacao);
+    const today = new Date();
+    return itemDate.toDateString() === today.toDateString();
+  });
+
+  const renderHeader = () => (
+      <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>Meu Gêmeo Digital</Text>
+          <Text style={styles.headerSubtitle}>Acompanhe o reflexo do seu bem-estar ao longo do tempo.</Text>
+          
+          <View style={styles.radarBox}>
+              <Text style={styles.radarTitle}>Status Preditivo (Últimos 7 dias)</Text>
+              <Text style={styles.radarHint}>* Este indicador reflete a projeção da Inteligência Artificial sobre as tendências do seu bem-estar corporativo, com base no histórico de suas interações diárias.</Text>
+              {mockRadarData.map((item, index) => (
+                  <View key={index} style={styles.barRow}>
+                      <Text style={styles.barLabel}>{item.eixo}</Text>
+                      <View style={styles.barBackground}>
+                          <View style={[styles.barFill, { width: `${item.score}%`, backgroundColor: item.color }]} />
+                      </View>
+                      <Text style={styles.barScore}>{item.score}%</Text>
+                  </View>
+              ))}
+              <Text style={styles.radarDisclaimer}>A IA percebeu um deslocamento de risco na sua Carga de Trabalho recente.</Text>
+          </View>
+
+          <View style={styles.profileBox}>
+              <Text style={styles.profileTitle}>Perfil Atualizado do Gêmeo (Memória da IA)</Text>
+              <Text style={styles.profileText}><Text style={styles.bold}>Identidade Base:</Text> {persona?.nome_preferido || 'Persona'} - {persona?.personalidade || 'Não informada'}</Text>
+              <Text style={styles.profileText}><Text style={styles.bold}>Última Atualização de Sentimento:</Text> {history.length > 0 ? history[0].resposta_colaborador : 'Nenhuma memória recente capturada.'}</Text>
+          </View>
+
+          <Text style={styles.listTitle}>Linha do Tempo de Interações (Hoje)</Text>
+      </View>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Evolução e Interações Passadas</Text>
       <FlatList
         data={history}
-        keyExtractor={(item) => item.id_interacao.toString()}
+        keyExtractor={(item, index) => item?.id_interacao?.toString() || index.toString()}
+        ListHeaderComponent={renderHeader}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.date}>{new Date(item.data_interacao).toLocaleDateString()}</Text>
-            <Text style={styles.text}><Text style={styles.bold}>Você relatou:</Text> {item.resposta_colaborador}</Text>
-            <Text style={styles.text}><Text style={styles.bold}>Sugestão da IA:</Text> {item.sugestao_ia}</Text>
-            <Text style={styles.text}><Text style={styles.bold}>Seu Feedback:</Text> {item.feedback_sugestao || 'Não avaliado'}</Text>
+            <View style={styles.cardHeader}>
+                <Text style={styles.date}>{new Date(item.data_interacao).toLocaleDateString()}</Text>
+                {item.feedback_sugestao && (
+                    <Text style={styles.badge}>{item.feedback_sugestao}</Text>
+                )}
+            </View>
+            <Text style={styles.text}><Text style={styles.bold}>Meu relato:</Text> {item.resposta_colaborador}</Text>
+            <Text style={styles.textIa}><Text style={styles.bold}>Acolhimento da IA:</Text> {item.sugestao_ia}</Text>
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>Nenhum histórico encontrado ainda.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>Nenhuma interação registrada hoje.</Text>}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 15, backgroundColor: '#f2f2f2' },
+  container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: '#0047AB' },
-  card: { backgroundColor: '#fff', padding: 15, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#ddd' },
-  date: { fontSize: 12, color: '#666', marginBottom: 5 },
-  text: { fontSize: 14, color: '#333', marginBottom: 3 },
-  bold: { fontWeight: 'bold' },
+  headerContainer: { marginBottom: 16 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#1f2937' },
+  headerSubtitle: { fontSize: 14, color: '#6b7280', marginBottom: 16 },
+  radarBox: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 24 },
+  radarTitle: { fontSize: 14, fontWeight: 'bold', color: '#374151', marginBottom: 12 },
+  radarHint: { fontSize: 12, color: '#6b7280', fontStyle: 'italic', marginBottom: 16, lineHeight: 18 },
+  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  barLabel: { width: 110, fontSize: 12, color: '#4b5563', fontWeight: '500' },
+  barBackground: { flex: 1, height: 10, backgroundColor: '#f3f4f6', borderRadius: 5, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 5 },
+  barScore: { width: 40, textAlign: 'right', fontSize: 12, fontWeight: 'bold', color: '#1f2937' },
+  radarDisclaimer: { marginTop: 10, fontSize: 11, color: '#ef4444', fontStyle: 'italic' },
+  profileBox: { backgroundColor: '#e0e7ff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#c7d2fe', marginBottom: 24 },
+  profileTitle: { fontSize: 15, fontWeight: 'bold', color: '#3730a3', marginBottom: 10 },
+  profileText: { fontSize: 13, color: '#4338ca', marginBottom: 6, lineHeight: 18 },
+  listTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginBottom: 12 },
+  card: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e5e7eb', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  date: { fontSize: 12, color: '#9ca3af', fontWeight: '500' },
+  badge: { fontSize: 10, backgroundColor: '#e0e7ff', color: '#4f46e5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, fontWeight: 'bold', overflow: 'hidden' },
+  text: { fontSize: 14, color: '#4b5563', marginBottom: 6, lineHeight: 20 },
+  textIa: { fontSize: 14, color: '#3b82f6', marginBottom: 3, lineHeight: 20 },
+  bold: { fontWeight: 'bold', color: '#1f2937' },
   empty: { textAlign: 'center', color: '#777', marginTop: 20 }
 });

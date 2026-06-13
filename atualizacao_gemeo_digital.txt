@@ -1,0 +1,55 @@
+PLANO DE ATUALIZAÇÃO: IMPLEMENTAÇÃO EFETIVA DO GÊMEO DIGITAL (V2)
+
+Este documento detalha o plano de refatoração para substituir o modelo relacional estático da POC original por uma arquitetura verdadeiramente baseada em Gêmeos Digitais Vetoriais (Digital Twins) utilizando o ChromaDB e IA Generativa.
+
+Fase 1: Evolução da Interação Diária (O Gêmeo Digital Individual)
+Problema atual: Perguntas fixas ("hardcoded") sorteadas aleatoriamente.
+Solução:
+1.1 Refatorar `backend/src/controllers/chatController.js (getDailyQuestion)`:
+  - Remover o array estático de perguntas.
+  - Fazer uma requisição ao endpoint `/ia-service/daily-question` (a ser criado), passando o `id_persona`.
+1.2 Criar novo fluxo no `/ia-service`:
+  - Receber o `id_persona`, consultar o banco vetorial ChromaDB (collection `personas_base_embeddings` e `memoria_interacoes_embeddings`).
+  - Recuperar a "essência" da pessoa (gostos, desgostos, motivações) e os últimos 3 sentimentos.
+  - Utilizar o LLM para gerar uma pergunta diária hiper-personalizada. 
+    * Exemplo gerado pela IA: "João, sei que você gosta de trabalhar focado e ontem estava sobrecarregado. Como está a sua energia hoje para lidar com suas entregas?"
+1.3 Atualização Contínua do Vetor:
+  - Ao receber a resposta, não apenas salvar em SQL (tabela `interacoes`), mas reprocessar o "estado atual" do Gêmeo Digital. Fazer um "upsert" no ChromaDB com a evolução de humor da persona, mantendo o gêmeo vivo e espelhando a realidade atual do funcionário.
+
+Fase 2: Motor Analítico Baseado em Similaridade Vetorial (Gêmeos Organizacionais)
+Problema atual: Agrupamento feito por SQL relacional fixo via média de percentual_adesao.
+Solução:
+2.1 Refatorar `backend/src/services/analystAiService.js`:
+  - Remover a lógica de `eixoCritico` calculada por médias condicionais (`if (media < 85)`).
+  - Acionar o `ia-service` para realizar um "Semantic Clustering" (Agrupamento Semântico).
+2.2 Implementar Clustering de Memória no `ia-service`:
+  - Buscar todos os Gêmeos Digitais ativos (embeddings atuais).
+  - Utilizar algoritmos de similaridade espacial (ex: K-Means, Cosine Similarity) diretamente nos vetores.
+  - O motor descobrirá padrões *emergentes* e *não óbvios*. Em vez de apenas categorias pré-definidas (ex: "Tendência ao Burnout"), a IA identificará agrupamentos orgânicos (ex: "Cluster A: Desenvolvedores Sêniores com alta carga de trabalho, mas engajados; Cluster B: Novos contratados sentindo isolamento remoto").
+2.3 Sintetizar Categorias Organizacionais Orgânicas:
+  - Passar as características centrais de cada Cluster identificado para o LLM e pedir que ele batize e descreva o Gêmeo Digital Organizacional.
+  - Gravar esses novos agrupamentos no banco SQL (`gemeos_organizacionais`) de forma dinâmica.
+
+Fase 3: Identificação de Tendências Preditivas (O Ganho Real do Gêmeo Digital)
+Problema atual: Não há predição real baseada no gêmeo, apenas médias de Monte Carlo.
+Solução:
+3.1 Criar o Módulo de "Simulação de Cenários Preditivos":
+  - Tendo os Gêmeos Organizacionais (clusters vetoriais), utilizar o LLM para simular cenários futuros (ex: "O que acontece com o Gêmeo Organizacional de 'Trabalho Remoto Isolado' se a demanda aumentar 20% no próximo mês?").
+  - O LLM analisa os traços predominantes do cluster e devolve a probabilidade de queda de engajamento (turnover) ou saúde mental.
+3.2 Atualizar Dashboard Analítico (Plataforma Analítica Web):
+  - Substituir relatórios focados apenas no passado por visualizações preditivas.
+  - Adicionar Gráfico de Dispersão 2D/3D (Scatter Plot via UMAP/t-SNE) mostrando os clusters de Gêmeos Digitais flutuando e se aproximando de "zonas de risco comportamental".
+  - Exibir o alerta: "O Gêmeo Organizacional Alpha está se deslocando rapidamente para o quadrante de Risco de Burnout".
+
+Resumo de Ganhos:
+- Hiper-personalização: Respeita o conceito real de gêmeo digital individual, acompanhando a evolução diária.
+- Descoberta de Padrões: Gestores descobrirão dores coletivas que não sabiam que existiam (fugindo das 10 categorias engessadas).
+- Capacidade Preditiva Real: Prever comportamentos de grupos e agir preventivamente antes de virar uma estatística de RH.
+
+Fase 4: App Móvel - Interface e Vivência do Gêmeo Digital Dinâmico
+Problema atual: O app mobile foi inicialmente pensado para questionários rígidos e respostas fixas, não refletindo a experiência de um Gêmeo Digital vivo.
+Solução:
+4.1 Onboarding Semântico (`OnboardingScreen`): O formulário de 8 passos alimentará diretamente o serviço de IA para o processamento do "embedding" inicial no ChromaDB, criando a consciência base do Gêmeo.
+4.2 Interface de Interação Fluida (`DailyChatScreen`): A tela de chat diário deve processar a pergunta hiper-personalizada da IA e oferecer, de forma nativa, tanto um campo de texto livre (para análise de sentimento/NLP) quanto até 4 botões (chips) gerados dinamicamente no contexto da pergunta para respostas rápidas.
+4.3 Visualização da Própria Evolução (`PersonaHistoryScreen`): O colaborador deve ter uma interface gráfica (ex: radar individual ou linha do tempo) no próprio app para visualizar a "saúde" e os deslocamentos de engajamento do seu Gêmeo Digital nos eixos ESG ao longo do tempo, gerando autoconhecimento.
+4.4 Transparência Preditiva (`SuggestionDetailsScreen`): As sugestões da IA devem deixar claro o motivo (com base no deslocamento do vetor do Gêmeo) pelo qual aquela ação de melhoria contínua foi sugerida para a Persona.
