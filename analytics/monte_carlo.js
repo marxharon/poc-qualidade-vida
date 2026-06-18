@@ -226,44 +226,34 @@ async function main() {
         }
         console.log(`   ✅ ${interacoesInseridas} interações (diálogos IA x Humano) geradas com sucesso.`);
 
-        // 5. Simulação da consolidação analítica mensal para o Gestor (Gêmeos Organizacionais)
-        console.log(`\n🧠 Consolidando agrupamentos do Analista IA para análise longitudinal (12 meses)...`);
+        // 5. Simulação da consolidação analítica V2 (Gêmeos Organizacionais Dinâmicos e Preditivos)
+        console.log(`\n🧠 Consolidando agrupamentos Semânticos (Clustering Orgânico) para análise longitudinal...`);
         
-        // Garante a existência dos agrupamentos base no banco caso o script de cleanup os tenha removido
         const resCheckGrupos = await db.query('SELECT count(*) as count FROM gemeos_organizacionais');
         if (parseInt(resCheckGrupos.rows[0].count) === 0) {
-            const categoriasIniciais = [
-                { nome: 'Tendência ao Burnout', desc: 'Colaboradores com indícios de esgotamento e sobrecarga contínua.' },
-                { nome: 'Sedentarismo e Saúde Física', desc: 'Baixa adoção de práticas saudáveis e exercícios.' },
-                { nome: 'Problemas de Relacionamento na Equipe', desc: 'Conflitos ou falta de colaboração interpessoal.' },
-                { nome: 'Tendência à Procrastinação', desc: 'Dificuldade de foco e gestão de tempo.' },
-                { nome: 'Desmotivação e Baixo Engajamento', desc: 'Baixo índice de pertencimento e propósito.' },
-                { nome: 'Insegurança Psicológica', desc: 'Medo de expor opiniões ou falhar no ambiente de trabalho.' },
-                { nome: 'Isolamento no Trabalho Remoto/Híbrido', desc: 'Falta de conexão com a cultura da empresa.' },
-                { nome: 'Insatisfação com Reconhecimento', desc: 'Sentimento de desvalorização profissional.' },
-                { nome: 'Desequilíbrio Vida-Trabalho', desc: 'Dificuldade de desconexão após o expediente.' },
-                { nome: 'Falta de Perspectiva de Crescimento', desc: 'Estagnação na trilha de desenvolvimento.' }
-            ];
-            for (const c of categoriasIniciais) {
-                await db.query(`INSERT INTO gemeos_organizacionais (nome_categoria, descricao_perfil) VALUES ($1, $2)`, [c.nome, c.desc]);
+            console.log('   🤖 Gerando Clusters Comportamentais Orgânicos com a IA...');
+            try {
+                // Simula o Analista IA descobrindo padrões vetoriais não óbvios na base (V2)
+                const promptClustering = `Atue como o Analista IA BEQV. Baseado em um banco de 100 colaboradores corporativos, identifique 5 clusters comportamentais orgânicos e altamente específicos (não use clichês como "Burnout" ou "Sedentarismo" de forma isolada, mas sim perfis cruzados, ex: "Jovens talentos remotos isolados"). Retorne apenas um JSON array com objetos contendo: nome, desc e id_eixo_predominante (de 1 a 10).`;
+                const iaClusterRes = await axios.post('https://api.openai.com/v1/chat/completions', {
+                    model: 'gpt-3.5-turbo',
+                    messages: [{ role: 'user', content: promptClustering }],
+                    temperature: 0.9
+                }, { headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' } });
+                
+                const categoriasDinamicas = JSON.parse(iaClusterRes.data.choices[0].message.content);
+                for (const c of categoriasDinamicas) {
+                    await db.query(`INSERT INTO gemeos_organizacionais (nome_categoria, descricao_perfil) VALUES ($1, $2)`, [c.nome, c.desc]);
+                }
+            } catch (error) {
+                console.error("⚠️ Fallback: Falha ao gerar clusters dinâmicos com IA. Gerando mock dinâmico...");
+                await db.query(`INSERT INTO gemeos_organizacionais (nome_categoria, descricao_perfil) VALUES ('Devs em Sobrecarga Silenciosa', 'Alta entrega, pouca interação e sinais de isolamento')`);
+                await db.query(`INSERT INTO gemeos_organizacionais (nome_categoria, descricao_perfil) VALUES ('Liderança com Insegurança Adaptativa', 'Dificuldade de gerir equipes remotas, causando microgerenciamento')`);
             }
         }
 
         const resGrupos = await db.query('SELECT id_agrupamento, nome_categoria, descricao_perfil FROM gemeos_organizacionais');
         const grupos = resGrupos.rows;
-
-        const categoriasMapeadas = [
-            { nome: 'Tendência ao Burnout', id_eixo: 2 },
-            { nome: 'Sedentarismo e Saúde Física', id_eixo: 1 },
-            { nome: 'Problemas de Relacionamento na Equipe', id_eixo: 9 },
-            { nome: 'Tendência à Procrastinação', id_eixo: 3 },
-            { nome: 'Desmotivação e Baixo Engajamento', id_eixo: 3 },
-            { nome: 'Insegurança Psicológica', id_eixo: 10 },
-            { nome: 'Isolamento no Trabalho Remoto/Híbrido', id_eixo: 4 },
-            { nome: 'Insatisfação com Reconhecimento', id_eixo: 8 },
-            { nome: 'Desequilíbrio Vida-Trabalho', id_eixo: 4 },
-            { nome: 'Falta de Perspectiva de Crescimento', id_eixo: 7 }
-        ];
 
         if (grupos.length > 0) {
             let tempDate = new Date(START_DATE);
@@ -272,10 +262,10 @@ async function main() {
                 nextMonth.setMonth(nextMonth.getMonth() + 1);
 
                 for (const grupo of grupos) {
-                    const categoria = categoriasMapeadas.find(c => c.nome === grupo.nome_categoria);
-                    const id_eixo = categoria ? categoria.id_eixo : eixos[0].id_eixo;
+                    // Associa um eixo pseudo-aleatório baseado no ID do grupo para o mapeamento dinâmico
+                    const id_eixo = eixos[grupo.id_agrupamento % eixos.length].id_eixo;
 
-                    // Calcula a evolução real desse eixo baseado nas interações daquele mês específico
+                    // Analisa a evolução desse Gêmeo Organizacional com base nas interações
                     const resMedia = await db.query(`
                         SELECT AVG(percentual_adesao) as media 
                         FROM interacoes 
@@ -289,8 +279,8 @@ async function main() {
 
                     let sugestao_estrategica = '';
                     try {
-                        // Aciona a OpenAI diretamente para gerar a análise estratégica do grupo mensalmente
-                        const promptAnalise = `Você é um Analista de Bem-Estar ESG. Avalie a categoria "${grupo.nome_categoria}" (Perfil: ${grupo.descricao_perfil}) que atingiu ${pontuacao}% de adesão positiva neste mês. Gere UMA sugestão estratégica, corporativa e preventiva para o gestor apoiar esse grupo. Seja direto e objetivo (máximo de 2 frases).`;
+                        // V2: Simula o motor preditivo do Gêmeo Organizacional projetando risco
+                        const promptAnalise = `O Cluster Comportamental "${grupo.nome_categoria}" (${grupo.descricao_perfil}) possui hoje ${pontuacao}% de saúde ESG. Realize uma análise PREDITIVA do que acontecerá com este grupo no próximo trimestre se nada for feito, e forneça uma ação preventiva. Máximo de 2 frases.`;
                         const iaRes = await axios.post('https://api.openai.com/v1/chat/completions', {
                             model: 'gpt-3.5-turbo',
                             messages: [{ role: 'user', content: promptAnalise }],
