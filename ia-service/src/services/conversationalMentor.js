@@ -128,12 +128,14 @@ export const processChatInteraction = async (id_persona, eixoESGSelecionado, res
     1. Crie uma sugestão (sugestao_final): Formule uma possibilidade de ação de melhoria focada na pessoa, de acordo com o histórico de interações da conversa atual e com o perfil do colaborador. A sugestão deve ser prática e iniciar com um verbo no infinitivo (ex: 'fazer um alongamento').
     2. Continue o bate-papo (resposta_chat): Acolha o relato atual de forma natural e empática, e EM SEGUIDA, faça uma NOVA PERGUNTA para aprofundar a conversa.
     3. Identifique o Eixo (eixo_identificado): Escolha o tema de ESG que melhor se relaciona com o relato atual (ex: Saúde Física, Saúde Mental, Clima e Engajamento, Equilíbrio Vida/Trabalho, etc).
+    4. Estime a Adesão (percentual_adesao): Um número inteiro de 0 a 100 indicando o nível de bem-estar ou saúde demonstrado neste relato.
     
     Responda EXATAMENTE neste formato JSON estrito:
     {
         "resposta_chat": "Seu acolhimento e a nova pergunta do bate-papo",
         "eixo_identificado": "Nome do eixo ESG",
-        "sugestao_final": "Ação prática iniciando com verbo no infinitivo"
+        "sugestao_final": "Ação prática iniciando com verbo no infinitivo",
+        "percentual_adesao": 85
     }
     `;
 
@@ -157,7 +159,8 @@ export const processChatInteraction = async (id_persona, eixoESGSelecionado, res
         return { 
             resposta_chat: "Entendo bem como é se sentir assim. E como você acha que isso vai impactar o resto do seu dia hoje?",
             eixo_identificado: "Saúde mental e emocional",
-            sugestao_final: "fazer uma pausa estratégica para respirar quando precisar"
+            sugestao_final: "fazer uma pausa estratégica para respirar quando precisar",
+            percentual_adesao: 70
         };
     }
 };

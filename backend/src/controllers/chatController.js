@@ -69,14 +69,14 @@ export const respondToChat = async (req, res) => {
             }, { timeout: 12000 }); // Limite de 12s para evitar Network Error do App
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service. Ativando Airbag de Chat.", iaError.message);
-            iaResponse = { data: { resposta_chat: "Tive um pequeno lapso de conexão aqui. Você poderia me contar um pouco mais sobre isso?", sugestao_final: "fazer uma pausa e respirar fundo", eixo_identificado: "Saúde mental e emocional" } };
+            iaResponse = { data: { resposta_chat: "Tive um pequeno lapso de conexão aqui. Você poderia me contar um pouco mais sobre isso?", sugestao_final: "fazer uma pausa e respirar fundo", eixo_identificado: "Saúde mental e emocional", percentual_adesao: 70 } };
         }
 
         // Flexibiliza a leitura dependendo de como o ia-service devolve o JSON
         let resposta_chat = String(iaResponse.data?.resposta_chat || iaResponse.data?.sugestao_acao || "Pode me falar mais sobre isso?");
         const sugestao_acao = String(iaResponse.data?.sugestao_final || iaResponse.data?.sugestao_acao || "fazer uma pausa estratégica e respirar fundo");
         const eixoIdentificado = String(iaResponse.data?.eixo_identificado || "Saúde mental e emocional");
-        const percentual_adesao = Math.floor(Math.random() * 20) + 75; // Predição mockada para a POC
+        const percentual_adesao = iaResponse.data?.percentual_adesao !== undefined ? Number(iaResponse.data.percentual_adesao) : 75;
 
         if (!resposta_chat.toLowerCase().includes("que tal")) {
             const sugestaoFormatada = sugestao_acao.charAt(0).toLowerCase() + sugestao_acao.slice(1);

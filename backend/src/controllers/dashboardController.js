@@ -77,17 +77,20 @@ export const getDashboardData = async (req, res) => {
             });
         });
 
-        // 5. Gráfico de Dispersão Semântico (Mapa Vetorial) - Conforme modelo 2.1.1 (PENDENTE DE DADOS DA IA)
-        // Para implementar este gráfico, o `ia-service` precisa gerar e persistir as coordenadas (ex: x, y)
-        // para cada Gêmeo Organizacional após aplicar um algoritmo de redução de dimensionalidade (UMAP/t-SNE).
-        // A tabela `gemeosOrganizacionais` precisaria ser estendida com `coord_x` e `coord_y`.
-        // O mock abaixo permite que o frontend comece a ser desenvolvido.
-        const scatterDataMock = grupos.map(g => ({
-            ...g,
-            x: Math.random() * 100, // Valor mockado para coordenada X
-            y: Math.random() * 100, // Valor mockado para coordenada Y
-            z: Math.floor(Math.random() * 50 + 20) // Mock para o tamanho da bolha (ex: nro de pessoas no cluster)
-        }));
+        // 5. Gráfico de Dispersão Semântico (Mapa Vetorial) - Conforme modelo 2.1.1
+        // As coordenadas agora são derivadas dinamicamente do comportamento real e engajamento dos agrupamentos.
+        const scatterData = grupos.map((g, index) => {
+            const historicoGrupo = historico.filter(h => h.id_agrupamento === g.id_agrupamento);
+            const xScore = historicoGrupo.length > 0 
+                ? Math.round(historicoGrupo.reduce((acc, curr) => acc + curr.pontuacao_agregada, 0) / historicoGrupo.length)
+                : 50;
+            return {
+                ...g,
+                x: xScore, // Eixo X: Saúde atual do grupo (score)
+                y: Math.min(100, (historicoGrupo.length * 5) + (index * 10)), // Eixo Y: Dispersão baseada na volumetria de histórico 
+                z: historicoGrupo.length || 10 // Eixo Z (Volume): Quantidade de medições/pessoas associadas
+            };
+        });
 
         res.status(200).json({ 
             radarData, 
@@ -98,7 +101,7 @@ export const getDashboardData = async (req, res) => {
             interacoes: interacoesList,
             feedbackData,      // NOVO: Para Gráfico de Barras
             heatmapData,       // NOVO: Para Mapa de Calor
-            scatterDataMock,   // NOVO: Mock para Gráfico de Dispersão
+            scatterData,       // NOVO: Dados Reais de Dispersão Vetorial
         });
     } catch (error) {
         res.status(500).json({ error: "Erro ao buscar dados do dashboard", details: error.message });

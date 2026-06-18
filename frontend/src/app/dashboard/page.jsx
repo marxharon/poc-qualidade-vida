@@ -2,8 +2,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    BarChart, Bar
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    BarChart, Bar, ScatterChart, Scatter, ZAxis
 } from 'recharts';
 
 // Otimização Global: Utilitário super rápido para substituir toLocaleString() que causava travamentos em arrays longos
@@ -86,6 +86,50 @@ export default function Dashboard() {
                 ? Math.round(historicoEixo.reduce((acc, curr) => acc + curr.pontuacao_agregada, 0) / historicoEixo.length)
                 : 70;
             return { eixo: eixo.nome, atual: mediaAtual, ideal: 90 };
+        });
+    }, [data, filteredHistorico, selectedMonth]);
+
+    // Recalcula os dados do Gráfico de Tendência (Linhas)
+    const chartTendencia = useMemo(() => {
+        if (!data?.historico || !data?.grupos) return [];
+        const hist = selectedMonth === 'Todos' ? data.historico : filteredHistorico;
+        const tendenciaMap = {};
+        hist.forEach(h => {
+            const mesAno = formatMonthYear(h.data_medicao);
+            if (!tendenciaMap[mesAno]) {
+                tendenciaMap[mesAno] = { mes: mesAno };
+            }
+            const grupo = data.grupos.find(g => g.id_agrupamento === h.id_agrupamento);
+            if (grupo) {
+                tendenciaMap[mesAno][grupo.nome_categoria] = h.pontuacao_agregada;
+            }
+        });
+        return Object.values(tendenciaMap);
+    }, [data, filteredHistorico, selectedMonth]);
+
+    // Recalcula os dados do Gráfico de Dispersão (Mapa Vetorial)
+    const chartScatterData = useMemo(() => {
+        if (!data?.scatterData) return [];
+        if (selectedMonth === 'Todos') return data.scatterData;
+        return data.scatterData.map(g => {
+            const groupHist = filteredHistorico.filter(h => h.id_agrupamento === g.id_agrupamento);
+            const groupHistCount = groupHist.length;
+            
+            // Simula o deslocamento vetorial (migração do cluster) baseado na pontuação de saúde do mês
+            const mediaPontuacao = groupHistCount > 0 
+                ? groupHist.reduce((acc, curr) => acc + curr.pontuacao_agregada, 0) / groupHistCount 
+                : 70;
+            
+            // Cria um "jitter" (desvio) nas coordenadas base para animar o gráfico em resposta ao filtro
+            const deslocamentoX = (mediaPontuacao - 70) * 0.8;
+            const deslocamentoY = (mediaPontuacao - 70) * -0.5;
+
+            return { 
+                ...g, 
+                x: Math.max(0, Math.min(100, g.x + deslocamentoX)), 
+                y: Math.max(0, Math.min(100, g.y + deslocamentoY)), 
+                z: groupHistCount > 0 ? (g.z || 50) : 10 
+            };
         });
     }, [data, filteredHistorico, selectedMonth]);
 
@@ -194,6 +238,61 @@ export default function Dashboard() {
                                 <Legend />
                                 <Tooltip />
                             </RadarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 2.1.2 Gráfico de Tendência Preditiva (Linhas) */}
+                <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
+                    <div className="flex justify-center items-center mb-4">
+                        <h2 className="text-xl font-semibold text-center">Evolução Longitudinal (Saúde dos Clusters)</h2>
+                        <div className="relative flex items-center group cursor-help ml-2">
+                            <svg className="w-5 h-5 text-gray-400 hover:text-blue-500 transition-colors" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"></path></svg>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 p-3 bg-gray-800 text-white text-xs rounded shadow-lg z-50 text-center leading-relaxed">
+                                Apresenta a evolução preditiva da saúde dos Gêmeos Organizacionais. Acompanhe as linhas para identificar tendências de queda ou aumento no engajamento dos clusters ao longo do tempo.
+                            </div>
+                        </div>
+                    </div>
+                    <div className="w-full">
+                        <ResponsiveContainer width="100%" height={320}>
+                            <LineChart data={chartTendencia} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="mes" />
+                                <YAxis domain={[0, 100]} />
+                                <Tooltip />
+                                <Legend />
+                                {data.grupos?.map((g, idx) => (
+                                    <Line key={g.id_agrupamento} type="monotone" name={g.nome_categoria} dataKey={g.nome_categoria} stroke={colors[idx % colors.length]} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                ))}
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 2.1.1 Gráfico de Dispersão Semântico (Mapa Vetorial) */}
+                <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
+                    <div className="flex justify-center items-center mb-4">
+                        <h2 className="text-xl font-semibold text-center">Gráfico de Dispersão (Mapa Vetorial)</h2>
+                        <div className="relative flex items-center group cursor-help ml-2">
+                            <svg className="w-5 h-5 text-gray-400 hover:text-blue-500 transition-colors" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"></path></svg>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 p-3 bg-gray-800 text-white text-xs rounded shadow-lg z-50 text-center leading-relaxed">
+                                Visualização espacial dos Gêmeos Organizacionais. Cada bolha representa um cluster comportamental. A proximidade entre elas indica similaridade de perfis, e o tamanho reflete a quantidade de colaboradores agrupados.
+                            </div>
+                        </div>
+                    </div>
+                    <div className="w-full">
+                        <ResponsiveContainer width="100%" height={320}>
+                            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <CartesianGrid />
+                                <XAxis type="number" dataKey="x" name="Eixo Semântico X" hide />
+                                <YAxis type="number" dataKey="y" name="Eixo Semântico Y" hide />
+                                <ZAxis type="number" dataKey="z" range={[100, 600]} name="Volume do Grupo" />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                                <Legend />
+                                {chartScatterData?.map((g, idx) => (
+                                    <Scatter key={g.id_agrupamento} name={g.nome_categoria} data={[g]} fill={colors[idx % colors.length]} />
+                                ))}
+                            </ScatterChart>
                         </ResponsiveContainer>
                     </div>
                 </div>

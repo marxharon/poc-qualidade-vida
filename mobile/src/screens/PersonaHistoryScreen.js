@@ -9,15 +9,17 @@ export default function PersonaHistoryScreen({ route }) {
   const [loading, setLoading] = useState(true);
   const [perception, setPerception] = useState(null);
   const [normalizedProfile, setNormalizedProfile] = useState(null);
+  const [radarData, setRadarData] = useState([]);
 
   useEffect(() => {
     // Busca o histórico e os detalhes base da Persona simultaneamente
     Promise.all([
       api.get(`/personas/${id_persona || 1}/history`),
       api.get('/personas'),
-      api.get(`/chat/perception?id_persona=${id_persona || 1}`).catch(() => ({ data: null }))
+      api.get(`/chat/perception?id_persona=${id_persona || 1}`).catch(() => ({ data: null })),
+      api.get(`/personas/${id_persona || 1}/radar`).catch(() => ({ data: { radar: [] } }))
     ])
-      .then(([historyRes, personasRes, perceptionRes]) => {
+      .then(([historyRes, personasRes, perceptionRes, radarRes]) => {
         setHistory(historyRes.data.history);
         const currentPersona = personasRes.data?.personas?.find(p => p.id_persona === (id_persona || 1));
         setPersona(currentPersona || null);
@@ -28,6 +30,13 @@ export default function PersonaHistoryScreen({ route }) {
         } else {
            setPerception("A IA não identificou deslocamentos críticos recentes no seu perfil.");
         }
+
+        if (radarRes && radarRes.data && radarRes.data.radar) {
+           // Filtra apenas os 3 eixos de maior alerta (menor score) para exibir no Status Preditivo
+           const top3Radar = radarRes.data.radar.sort((a, b) => a.score - b.score).slice(0, 3);
+           setRadarData(top3Radar.length > 0 ? top3Radar : []);
+        }
+
         setLoading(false);
       })
       .catch(err => {
@@ -37,13 +46,6 @@ export default function PersonaHistoryScreen({ route }) {
   }, [id_persona]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#3b82f6" /></View>;
-
-  // Simulação da saúde do Gêmeo Digital (Eixos) baseada no perfil dinâmico
-  const mockRadarData = [
-      { eixo: 'Saúde Mental', score: 78, color: '#10b981' }, // Verde
-      { eixo: 'Engajamento', score: 65, color: '#f59e0b' },  // Amarelo
-      { eixo: 'Carga de Trabalho', score: 40, color: '#ef4444' } // Vermelho
-  ];
 
   // Filtra as interações para exibir na lista apenas as que ocorreram hoje
   const todaysHistory = history.filter(item => {
@@ -61,7 +63,7 @@ export default function PersonaHistoryScreen({ route }) {
           <View style={styles.radarBox}>
               <Text style={styles.radarTitle}>Status Preditivo (Últimos 7 dias)</Text>
               <Text style={styles.radarHint}>* A projeção do Status Preditivo indica o nível estimado de aderência da sua persona a cada eixo ESG. O escore percentual é calculado cruzando matematicamente o seu histórico recente de sentimentos (vetores da memória) com os Gêmeos Organizacionais saudáveis, apontando tendências de queda (risco) ou alta (saúde) no seu bem-estar.</Text>
-              {mockRadarData.map((item, index) => (
+              {radarData.map((item, index) => (
                   <View key={index} style={styles.barRow}>
                       <Text style={styles.barLabel}>{item.eixo}</Text>
                       <View style={styles.barBackground}>
@@ -97,6 +99,9 @@ export default function PersonaHistoryScreen({ route }) {
                     <Text style={styles.badge}>{item.feedback_sugestao}</Text>
                 )}
             </View>
+            {item.pergunta_ia && (
+                <Text style={styles.textQuestion}><Text style={styles.bold}>Pergunta da IA:</Text> {item.pergunta_ia}</Text>
+            )}
             <Text style={styles.text}><Text style={styles.bold}>Meu relato:</Text> {item.resposta_colaborador}</Text>
             <Text style={styles.textIa}><Text style={styles.bold}>Acolhimento da IA:</Text> {item.sugestao_ia}</Text>
           </View>
@@ -133,6 +138,7 @@ const styles = StyleSheet.create({
   badge: { fontSize: 10, backgroundColor: '#e0e7ff', color: '#4f46e5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, fontWeight: 'bold', overflow: 'hidden' },
   text: { fontSize: 14, color: '#4b5563', marginBottom: 6, lineHeight: 20 },
   textIa: { fontSize: 14, color: '#3b82f6', marginBottom: 3, lineHeight: 20 },
+  textQuestion: { fontSize: 14, color: '#6b7280', marginBottom: 6, fontStyle: 'italic', lineHeight: 20 },
   bold: { fontWeight: 'bold', color: '#1f2937' },
   empty: { textAlign: 'center', color: '#777', marginTop: 20 }
 });

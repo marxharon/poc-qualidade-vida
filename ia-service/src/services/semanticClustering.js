@@ -1,46 +1,71 @@
+import axios from 'axios';
+import { initChromaCollections } from '../config/chromaClient.js';
+import { kmeans } from 'ml-kmeans';
+import 'dotenv/config';
+
 export const discoverOrganicClusters = async (data_inicio, data_fim) => {
     console.log(`[IA Motor Preditivo] Iniciando Semantic Clustering no período ${data_inicio} a ${data_fim}...`);
     
-    // Passo 1: O motor buscaria TODOS os vetores de Gêmeos Digitais no ChromaDB
-    // const chroma = new ChromaClient({ path: process.env.CHROMADB_URL });
-    // const col = await chroma.getCollection({ name: "memoria_interacoes_embeddings" });
-    // const todosVetores = await col.get(...);
+    try {
+        const collections = await initChromaCollections();
+        if (!collections?.interacoesCollection) throw new Error("ChromaDB não inicializado.");
 
-    // Passo 2: Rodaríamos uma função matemática de Similaridade de Cosseno ou K-Means (ex: via biblioteca 'ml-kmeans')
-    // para descobrir grupos (clusters) que estão muito próximos no "espaço vetorial" de sentimentos.
+        // 1. Busca todos os vetores de Gêmeos Digitais no ChromaDB
+        const interacoes = await collections.interacoesCollection.get({
+            include: ['embeddings', 'documents']
+        });
 
-    // Passo 3: O LLM analisa o centróide do cluster e o batiza com um nome descritivo (Gêmeo Organizacional)
-    // A IA gera também a simulação de cenários preditivos.
-    
-    // --- INÍCIO DA SIMULAÇÃO (O que a IA responderia em um fluxo real com dados do vetor) ---
-    const clustersDescobertosIA = [
-        {
-            nome_categoria: "Desenvolvedores em Isolamento Remoto",
-            descricao_perfil: "Colaboradores com alta produtividade técnica, mas com sentimentos frequentes de desconexão da cultura da empresa e falta de pausas.",
-            id_eixo_predominante: 4, // Equilíbrio Vida-Trabalho
-            pontuacao_agregada: 62, // Indicador de Risco (Abaixo de 70)
-            sugestao_estrategica: "Predição: Risco médio de turnover nos próximos 3 meses por desengajamento. Ação: Fomentar 'Coffee Breaks Virtuais' de 15 min às sextas e gamificação de pausas."
-        },
-        {
-            nome_categoria: "Lideranças Intermediárias Sobrecarregadas",
-            descricao_perfil: "Gestores que absorveram cargas operacionais e reportam ansiedade crônica nos últimos 15 dias.",
-            id_eixo_predominante: 2, // Saúde mental
-            pontuacao_agregada: 55, // Indicador Crítico
-            sugestao_estrategica: "Predição: Alta chance de afastamentos por estresse (Burnout corporativo eminente). Ação imediata: Redistribuição de carga ou bloqueio de agenda de 2h/semana sem reuniões."
-        },
-        {
-            nome_categoria: "Novos Talentos Altamente Engajados",
-            descricao_perfil: "Recém-contratados sentindo pertencimento e aprendizado rápido. Zona de conforto saudável.",
-            id_eixo_predominante: 3, // Clima e engajamento
-            pontuacao_agregada: 94, // Zona de Saúde
-            sugestao_estrategica: "Predição: Formação orgânica de futuros embaixadores culturais. Ação: Manter o programa atual de onboarding e oferecer mentoria reversa."
+        if (!interacoes.embeddings || interacoes.embeddings.length === 0) {
+             return [];
         }
-    ];
-    // --- FIM DA SIMULAÇÃO ---
 
-    // Observe a mudança arquitetural: Antes usávamos 10 categorias engessadas.
-    // Agora a IA gera categorias HIPER-ESPECÍFICAS ("Lideranças Intermediárias Sobrecarregadas"),
-    // descobrindo as "dores invisíveis" organicamente cruzando a matemática dos Gêmeos Digitais e interpretação do LLM.
+        // 2. Roda a função matemática de K-Means para agrupar vetores espacialmente similares
+        const data = interacoes.embeddings;
+        const k = Math.min(3, data.length); // Limita a 3 clusters distintos para a POC
+        const ans = kmeans(data, k, { initialization: 'kmeans++' });
+        
+        // Agrupa os documentos (relatos textuais) por cluster para o LLM ler
+        const clustersTexts = Array.from({ length: k }, () => []);
+        ans.clusters.forEach((clusterIndex, dataIndex) => {
+             clustersTexts[clusterIndex].push(interacoes.documents[dataIndex]);
+        });
 
-    return clustersDescobertosIA;
+        const clustersDescobertosIA = [];
+
+        // 3. O LLM analisa os relatos do cluster matemático e o batiza
+        for (let i = 0; i < k; i++) {
+             const amostraTextos = clustersTexts[i].slice(-15).join(" | "); 
+             
+             const promptClustering = `
+             Atue como o Analista IA de Bem-Estar. 
+             Analise estes relatos anonimizados de um grupo de colaboradores que a matemática vetorial agrupou por similaridade de sentimento:
+             "${amostraTextos}"
+             
+             Sintetize a dor ou motivação deste grupo em UM Gêmeo Organizacional.
+             Retorne APENAS um JSON:
+             - "nome_categoria": Nome criativo e específico para o cluster (ex: "Desenvolvedores em Isolamento Remoto").
+             - "descricao_perfil": Descrição do perfil comportamental deste grupo.
+             - "id_eixo_predominante": ID numérico (1 a 10) do eixo ESG que mais se destaca.
+             - "sugestao_estrategica": Predição de risco e ação preventiva em 2 frases.
+             - "pontuacao_agregada": Nota de 0 a 100 avaliando a saúde geral deste grupo baseada nos relatos.
+             `;
+             
+             const iaClusterRes = await axios.post('https://api.openai.com/v1/chat/completions', {
+                 model: 'gpt-3.5-turbo',
+                 messages: [{ role: 'user', content: promptClustering }],
+                 response_format: { type: "json_object" },
+                 temperature: 0.7
+             }, { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` } });
+             
+             const clusterData = JSON.parse(iaClusterRes.data.choices[0].message.content);
+             
+             clustersDescobertosIA.push(clusterData);
+        }
+
+        return clustersDescobertosIA;
+
+    } catch (error) {
+        console.error("Erro na clusterização dinâmica:", error);
+        return [];
+    }
 };

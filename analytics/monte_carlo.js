@@ -12,9 +12,9 @@ dotenv.config({ path: path.join(__dirname, '../backend/.env') });
 dotenv.config(); // Tenta carregar .env local também, caso exista na pasta analytics
 
 // Configurações da simulação
-const NUM_PERSONAS = 100; // Aumentado o volume para 100 personas
-const START_DATE = new Date('2026-01-01T12:00:00Z'); // Ajustado para 12h para evitar fuso horário retroceder para 12/2025
-const END_DATE = new Date('2026-05-31T12:00:00Z'); // Simulação cobrindo exatamente 5 meses (Jan-Mai)
+const NUM_PERSONAS = 40; // Volume otimizado para POC 100% IA (Custo/Tempo reduzidos, clusters eficientes)
+const START_DATE = new Date('2026-03-01T12:00:00Z'); // Ajustado para 12h para evitar fuso horário retroceder para 12/2025
+const END_DATE = new Date('2026-05-31T12:00:00Z'); // Simulação de 1 trimestre preditivo (Jan-Mar)
 
 // Conexão com os serviços da POC
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://SEU_USUARIO:SUA_SENHA@localhost:5432/beqv_db';
@@ -23,31 +23,6 @@ const IA_SERVICE_URL = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api'
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const { Client } = pg;
-
-// Variáveis probabilísticas para o Motor de Monte Carlo
-const respostas_diarias = [
-    "Hoje estou me sentindo ótimo e produtivo, consegui entregar tudo.",
-    "Estou um pouco cansado devido à alta demanda desta semana.",
-    "O clima na equipe está tenso hoje, tivemos um conflito na reunião.",
-    "Tudo tranquilo, consegui focar nas minhas tarefas sem interrupções.",
-    "Me sinto desmotivado, a rotina está muito repetitiva.",
-    "Estou com muita dor nas costas devido à cadeira do home office.",
-    "Fiz muitas pausas hoje, o dia foi bem equilibrado e saudável.",
-    "Me sinto muito reconhecido pelo feedback do meu gestor hoje!"
-];
-const feedbacks = ['Boa', 'Ruim', 'Indiferente'];
-
-// Variação de perguntas da IA ao invés de usar sempre a mesma mensagem
-const perguntasVariadas = [
-    "Como você avalia seu bem-estar hoje?",
-    "Como está sua energia e motivação para o trabalho hoje?",
-    "Você sentiu algum impacto no seu equilíbrio vida/trabalho essa semana?",
-    "Qual a sua percepção sobre o clima da equipe ultimamente?",
-    "Você tem conseguido manter seus hábitos saudáveis durante a rotina?",
-    "Como você avalia o reconhecimento que tem recebido?",
-    "Você sente segurança para expressar suas opiniões na equipe?",
-    "Como está sua carga de tarefas hoje?"
-];
 
 async function gerarPersonasComIA() {
     console.log('🤖 Solicitando à IA a geração de perfis corporativos diversos para as personas...');
@@ -126,7 +101,7 @@ async function main() {
             ]);
             
             const id_persona = resPersona.rows[0].id_persona;
-            personasCriadas.push(id_persona);
+            personasCriadas.push({ id_persona, arquetipo }); // Agora guardamos o perfil junto para passar para a IA depois
 
             // Envia para o motor IA criar o Gêmeo Digital Vetorial no ChromaDB
             try {
@@ -140,90 +115,96 @@ async function main() {
             if ((i + 1) % 100 === 0) console.log(`   ... ${i + 1} personas registradas.`);
         }
 
-        // 4. Simular histórico diário para as personas (12 meses de conversas)
-        console.log(`\n💬 Simulando histórico interativo (App Mobile) para ${NUM_PERSONAS} personas...`);
+        // 4. Simular trajetórias temporais evolutivas para o Gêmeo Digital (App Mobile)
+        console.log(`\n💬 Simulando trajetórias temporais evolutivas via IA para ${NUM_PERSONAS} personas...`);
         let interacoesInseridas = 0;
-        const iaCache = {};
 
-        for (const id_persona of personasCriadas) {
-            let currentDate = new Date(START_DATE);
-            let currentMonth = -1;
-            let eixoFocoMes = null;
+        for (const personaData of personasCriadas) {
+            const { id_persona, arquetipo } = personaData;
             
-            while (currentDate <= END_DATE) {
-                // Checa se virou o mês para recalcular o enquadramento/foco da IA na persona dinamicamente
-                if (currentDate.getMonth() !== currentMonth) {
-                    currentMonth = currentDate.getMonth();
+            let currentMonthStart = new Date(START_DATE);
+            
+            while (currentMonthStart <= END_DATE) {
+                const currentMonth = currentMonthStart.getMonth();
                     
-                    // Chance de 15% da persona ter um mês "neutro" onde não se enquadra em nenhum eixo
-                    const isNeutral = Math.random() < 0.15;
-                    if (isNeutral) {
-                        eixoFocoMes = null; // Não será contabilizada/diluída
-                    } else {
-                        // IA foca dinamicamente em APENAS 1 eixo de saúde/ESG por persona no mês
-                        // Isso garante que a soma de personas nos eixos nunca ultrapasse 100
-                        eixoFocoMes = eixos[Math.floor(Math.random() * eixos.length)];
-                    }
-                }
-
-                if (!eixoFocoMes) {
-                    // Persona não enquadrada em nenhum eixo no mês: avança o dia sem gerar interações
-                    currentDate.setDate(currentDate.getDate() + 1);
-                    continue;
-                }
-
-                const relato = respostas_diarias[Math.floor(Math.random() * respostas_diarias.length)];
+                // Chance de 15% da persona ter um mês "neutro" onde não interage ativamente
+                const isNeutral = Math.random() < 0.15;
+                if (!isNeutral) {
+                    const eixoFocoMes = eixos[Math.floor(Math.random() * eixos.length)];
+                    const nome_eixo = eixoFocoMes.nome;
+                    const id_eixo = eixoFocoMes.id_eixo;
                 
-                const id_eixo = eixoFocoMes.id_eixo;
-                const nome_eixo = eixoFocoMes.nome;
+                try {
+                    if (!OPENAI_API_KEY || OPENAI_API_KEY.includes('sua_chave')) throw new Error('Chave da OpenAI não configurada.');
+                    
+                    const promptMsg = `Atue como um simulador de Gêmeos Digitais Corporativos.
+Gere cerca de 8 interações sequenciais (1 mês) entre um Mentor IA e este colaborador:
+Perfil: ${arquetipo.personalidade} | Gostos: ${arquetipo.gostos} | Sentimento base: ${arquetipo.sentimento_trabalho}
+Eixo ESG Avaliado no Mês: ${nome_eixo}
 
-                // Cria uma flutuação orgânica cruzando o eixo e o mês (evita crescimento linear igual para todos)
-                const comportamentos = [
-                    50 + Math.floor(Math.random() * 20), // Queda de adesão
-                    70 + Math.floor(Math.random() * 20), // Estabilidade
-                    85 + Math.floor(Math.random() * 15)  // Alta adesão
-                ];
-                let adesao = comportamentos[(id_eixo + currentMonth) % 3];
-                if (adesao > 100) adesao = 100;
-
-                const feedback = feedbacks[Math.floor(Math.random() * feedbacks.length)];
-                const pergunta_ia = perguntasVariadas[Math.floor(Math.random() * perguntasVariadas.length)];
-                let sugestao_ia = "Sugestão corporativa preventiva baseada no perfil e no eixo avaliado.";
-
-                // Aciona a OpenAI diretamente garantindo IA 100% dinâmica. Uso de cache inteligente para 
-                // evitar estouro de limite da API (429 Rate Limit) em 15.000 requisições simultâneas.
-                const cacheKey = `${nome_eixo}|${relato}`;
-                if (iaCache[cacheKey]) {
-                    sugestao_ia = iaCache[cacheKey];
-                } else {
-                    try {
-                        const promptMsg = `Como mentor corporativo ESG, dê uma sugestão curta em UMA frase e acolhedora para um colaborador do grupo "${nome_eixo}" que relatou: "${relato}".`;
+Atenção: As respostas devem formar uma NARRATIVA TEMPORAL evolutiva (ex: cansaço aumentando ou humor melhorando ao longo dos dias).
+SEJA CONCISO E DIRETO nos diálogos para não exceder o limite de texto.
+Retorne RIGOROSAMENTE um objeto JSON contendo uma única chave chamada "interacoes", que deve ser um array de objetos com:
+- "pergunta_ia": "Pergunta curta"
+- "resposta_colaborador": "Relato em 1 pessoa (conciso)"
+- "sugestao_ia": "Ação prática e curta"
+- "percentual_adesao": inteiro de 0 a 100 indicando a saúde demonstrada neste relato
+- "feedback_sugestao": "Boa", "Ruim" ou "Indiferente" avaliando a sugestão da IA recebida
+`;
                         const iaRes = await axios.post('https://api.openai.com/v1/chat/completions', {
                             model: 'gpt-3.5-turbo',
                             messages: [{ role: 'user', content: promptMsg }],
-                            temperature: 0.8
+                            temperature: 0.8, // Levemente reduzido para focar na estrutura JSON
+                            response_format: { type: "json_object" } // Força a OpenAI a nunca cortar o JSON no meio
                         }, {
                             headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
                         });
-                        sugestao_ia = iaRes.data.choices[0].message.content.trim();
-                        iaCache[cacheKey] = sugestao_ia;
-                    } catch (e) {
-                        console.error('⚠️ Falha ao acionar a OpenAI durante interações diárias:', e.message);
-                    }
+
+                        let responseText = iaRes.data.choices[0].message.content.trim();
+                        // Limpa possíveis marcações de código markdown do GPT
+                        if (responseText.startsWith('\`\`\`')) {
+                            responseText = responseText.replace(/^\`\`\`(json)?\n?/, '').replace(/\`\`\`$/, '').trim();
+                        }
+                        
+                        const parsedObject = JSON.parse(responseText);
+                        const interacoesGeradas = parsedObject.interacoes || [];
+                        
+                        let interacaoDate = new Date(currentMonthStart);
+                        interacaoDate.setDate(2); // Começa no dia 2 do mês
+
+                        for (const interacao of interacoesGeradas) {
+                            if (interacaoDate > END_DATE) break;
+
+                            await db.query(`
+                                INSERT INTO interacoes 
+                                (id_persona, id_eixo, data_interacao, pergunta_ia, resposta_colaborador, sugestao_ia, percentual_adesao, feedback_sugestao)
+                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                            `, [
+                                id_persona, id_eixo, interacaoDate.toISOString(), 
+                                interacao.pergunta_ia, interacao.resposta_colaborador, interacao.sugestao_ia, 
+                                interacao.percentual_adesao || 75, interacao.feedback_sugestao || 'Indiferente'
+                            ]);
+
+                            interacoesInseridas++;
+                            
+                            // Avança de 3 a 4 dias para a próxima interação
+                            interacaoDate.setDate(interacaoDate.getDate() + Math.floor(Math.random() * 2) + 3);
+                            
+                            // Impede que as interações extrapolem para o próximo mês dentro deste laço
+                            if (interacaoDate.getMonth() !== currentMonth) {
+                                break;
+                            }
+                        }
+                } catch (e) {
+                    console.error('⚠️ Falha ao acionar a OpenAI durante trajetória mensal evolutiva:', e.message);
                 }
-
-                await db.query(`
-                    INSERT INTO interacoes 
-                    (id_persona, id_eixo, data_interacao, pergunta_ia, resposta_colaborador, sugestao_ia, percentual_adesao, feedback_sugestao)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                `, [
-                    id_persona, id_eixo, currentDate.toISOString(), pergunta_ia, relato, sugestao_ia, adesao, feedback
-                ]);
-
-                interacoesInseridas++;
-                currentDate.setDate(currentDate.getDate() + 1);
             }
+
+            // Avança para o primeiro dia do próximo mês
+            currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
+            currentMonthStart.setDate(1); 
         }
+    }
         console.log(`   ✅ ${interacoesInseridas} interações (diálogos IA x Humano) geradas com sucesso.`);
 
         // 5. Simulação da consolidação analítica V2 (Gêmeos Organizacionais Dinâmicos e Preditivos)

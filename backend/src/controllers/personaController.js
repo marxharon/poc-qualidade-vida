@@ -79,3 +79,35 @@ export const getPersonaHistory = async (req, res) => {
         res.status(500).json({ success: false, message: 'Erro ao buscar histórico' });
     }
 };
+
+export const getPersonaRadarData = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const eixos = await db.select().from(eixosESG);
+        const interacoesRaw = await db.select()
+            .from(interacoes)
+            .where(eq(interacoes.id_persona, parseInt(id)));
+
+        const radarData = eixos.map(eixo => {
+            const interacoesEixo = interacoesRaw.filter(h => h.id_eixo === eixo.id_eixo);
+            const media = interacoesEixo.length > 0 
+                ? Math.round(interacoesEixo.reduce((acc, curr) => acc + curr.percentual_adesao, 0) / interacoesEixo.length)
+                : 100; // Saúde máxima caso não existam problemas relatados
+            
+            let color = '#10b981'; // Verde
+            if (media < 70) color = '#f59e0b'; // Amarelo
+            if (media < 50) color = '#ef4444'; // Vermelho
+
+            return {
+                eixo: eixo.nome,
+                score: media,
+                color
+            };
+        });
+        
+        res.status(200).json({ success: true, radar: radarData });
+    } catch (error) {
+        console.error('Erro ao buscar dados do radar:', error);
+        res.status(500).json({ success: false, message: 'Erro ao buscar radar' });
+    }
+};
