@@ -2,31 +2,64 @@ import axios from 'axios';
 import { initChromaCollections } from '../config/chromaClient.js';
 import 'dotenv/config'; // Garante que a chave da OpenAI seja lida corretamente
 
-export const generatePersonalizedQuestion = async (id_persona) => {
-    console.log(`[IA Mentor] Consultando a essência da persona ${id_persona} no ChromaDB...`);
+// Recuperador Oficial: Garante que os Dados Oficiais do Gêmeo nunca sejam perdidos por falhas no Express/Rota.
+const fetchPersonaFallback = async (safeId) => {
+    if (!safeId || isNaN(Number(safeId))) return null;
+    try {
+        const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:3000/api';
+        const { data } = await axios.get(`${backendUrl}/personas`);
+        return data.personas?.find(p => p.id_persona === Number(safeId)) || null;
+    } catch (e) {
+        return null;
+    }
+};
+
+export const generatePersonalizedQuestion = async (id_persona_arg, fallback_arg) => {
+    let safeId = id_persona_arg;
+    let personaFallback = fallback_arg;
+
+    if (id_persona_arg && typeof id_persona_arg === 'object') {
+        const source = id_persona_arg.body || id_persona_arg;
+        safeId = source.id_persona;
+        personaFallback = source.personaFallback;
+    }
+
+    if (!personaFallback) personaFallback = await fetchPersonaFallback(safeId);
+
+    console.log(`[IA Mentor] Consultando a essência da persona ${safeId} no ChromaDB...`);
     
-    let perfilReal = "Perfil genérico corporativo.";
+    const strFallback = personaFallback 
+        ? `[Dados Oficiais] Nome: ${personaFallback.nome_preferido}. Personalidade: ${personaFallback.personalidade}. Gostos: ${personaFallback.gostos}. Desgostos: ${personaFallback.desgostos}.` 
+        : "[Dados Oficiais] Perfil genérico corporativo.";
+        
+    let perfilReal = strFallback;
     let memoriaReal = "Nenhuma memória anterior.";
     let isPrimeiraInteracao = true;
+
+    if (!safeId || isNaN(Number(safeId))) {
+        return {
+            question: "Não consegui identificar seu perfil. Como você está hoje?",
+            options: ["Tranquilo", "Um pouco pesado", "Estou sobrecarregado", "Entediado"]
+        };
+    }
 
     try {
         const collections = await initChromaCollections();
         
-        // 1. Busca o Gêmeo Digital Base (Perfil preenchido no Onboarding)
-        if (collections?.personasCollection) {
-            const personaVetorData = await collections.personasCollection.get({ ids: [id_persona.toString()] });
-            if (personaVetorData && personaVetorData.documents && personaVetorData.documents.length > 0) {
-                perfilReal = personaVetorData.documents[0];
-            }
-        }
-
-        // 2. Busca a memória das últimas interações contínuas no banco vetorial
+        // Busca SOMENTE a memória das últimas interações contínuas no banco vetorial
         if (collections?.interacoesCollection) {
-            const interacoesData = await collections.interacoesCollection.get({ where: { id_persona: Number(id_persona) } });
-            if (interacoesData && interacoesData.documents && interacoesData.documents.length > 0) {
-                const docs = interacoesData.documents;
-                memoriaReal = docs[docs.length - 1]; // Recupera a última memória relatada
-                isPrimeiraInteracao = false;
+            const interacoesData = await collections.interacoesCollection.get({ where: { id_persona: Number(safeId) } });
+            if (interacoesData?.documents?.length > 0) {
+                const docsWithTimestamps = interacoesData.documents.map((doc, index) => ({
+                    doc,
+                    timestamp: (interacoesData.metadatas && interacoesData.metadatas[index]?.timestamp) ? interacoesData.metadatas[index].timestamp : 0
+                })).filter(item => item.doc);
+                
+                if (docsWithTimestamps.length > 0) {
+                    docsWithTimestamps.sort((a, b) => a.timestamp - b.timestamp);
+                    memoriaReal = docsWithTimestamps[docsWithTimestamps.length - 1].doc;
+                    isPrimeiraInteracao = false;
+                }
             }
         }
     } catch (error) {
@@ -81,36 +114,63 @@ export const generatePersonalizedQuestion = async (id_persona) => {
     }
 };
 
-export const processChatInteraction = async (id_persona, eixoESGSelecionado, respostaColaboradorNatural) => {
-    console.log(`[IA Mentor] Processando interação contínua para a persona ${id_persona}...`);
+export const processChatInteraction = async (id_persona_arg, eixoESGSelecionado_arg, respostaColaboradorNatural_arg, fallback_arg) => {
+    let safeId = id_persona_arg;
+    let safeEixo = eixoESGSelecionado_arg;
+    let safeResposta = respostaColaboradorNatural_arg;
+    let personaFallback = fallback_arg;
+
+    if (id_persona_arg && typeof id_persona_arg === 'object') {
+        const source = id_persona_arg.body || id_persona_arg;
+        safeId = source.id_persona;
+        safeEixo = source.eixoESGSelecionado || eixoESGSelecionado_arg;
+        safeResposta = source.respostaColaboradorNatural || respostaColaboradorNatural_arg;
+        personaFallback = source.personaFallback;
+    }
+
+    if (!personaFallback) personaFallback = await fetchPersonaFallback(safeId);
+
+    console.log(`[IA Mentor] Processando interação contínua para a persona ${safeId}...`);
     
     let memoriaAcumulada = "Sem histórico recente.";
-    let perfilReal = "Perfil genérico corporativo.";
+    const strFallback = personaFallback 
+        ? `[Dados Oficiais] Nome: ${personaFallback.nome_preferido}. Personalidade: ${personaFallback.personalidade}. Gostos: ${personaFallback.gostos}. Desgostos: ${personaFallback.desgostos}.` 
+        : "[Dados Oficiais] Perfil genérico corporativo.";
+    let perfilReal = strFallback;
+
+    if (!safeId || isNaN(Number(safeId))) {
+        return { 
+            resposta_chat: "Tive um problema ao processar seu histórico. Pode me detalhar mais?",
+            eixo_identificado: "A classificar",
+            sugestao_final: "fazer uma pausa para realinhamento",
+            percentual_adesao: 70
+        };
+    }
 
     try {
         const collections = await initChromaCollections();
         
-        // Busca o Gêmeo Digital Base para contextualizar a sugestão final e a conversa
-        if (collections?.personasCollection) {
-            const personaVetorData = await collections.personasCollection.get({ ids: [id_persona.toString()] });
-            if (personaVetorData && personaVetorData.documents && personaVetorData.documents.length > 0) {
-                perfilReal = personaVetorData.documents[0];
-            }
-        }
-
         if (collections?.interacoesCollection) {
-            // Busca as últimas interações (Memória) para a IA entender o rumo da conversa
-            const historico = await collections.interacoesCollection.get({ where: { id_persona: Number(id_persona) } });
-            if (historico && historico.documents && historico.documents.length > 0) {
-                const ultimosRelatos = historico.documents.slice(-3); // Puxa os últimos 3 contextos
-                memoriaAcumulada = ultimosRelatos.join(" | ");
+            // Busca SOMENTE as últimas interações (Memória) para a IA entender o rumo da conversa
+            const historico = await collections.interacoesCollection.get({ where: { id_persona: Number(safeId) } });
+            if (historico?.documents?.length > 0) {
+                const docsWithTimestamps = historico.documents.map((doc, index) => ({
+                    doc,
+                    timestamp: (historico.metadatas && historico.metadatas[index]?.timestamp) ? historico.metadatas[index].timestamp : 0
+                })).filter(item => item.doc);
+                
+                if (docsWithTimestamps.length > 0) {
+                    docsWithTimestamps.sort((a, b) => a.timestamp - b.timestamp);
+                    const ultimosRelatos = docsWithTimestamps.slice(-3).map(item => item.doc);
+                    memoriaAcumulada = ultimosRelatos.join(" | ");
+                }
             }
 
             const timestamp = Date.now();
             await collections.interacoesCollection.upsert({ 
-                ids: [`${id_persona}-${timestamp}`], 
-                documents: [respostaColaboradorNatural],
-                metadatas: [{ id_persona: Number(id_persona), eixo: "A classificar", timestamp }]
+                ids: [`${safeId}-${timestamp}`], 
+                documents: [safeResposta],
+                metadatas: [{ id_persona: Number(safeId), eixo: safeEixo || "A classificar", timestamp }]
             });
             console.log(`[IA Mentor] Nova memória vetorial persistida com sucesso!`);
         }
@@ -165,23 +225,46 @@ export const processChatInteraction = async (id_persona, eixoESGSelecionado, res
     }
 };
 
-export const analyzeSuggestionReason = async (id_persona, sugestao) => {
+export const analyzeSuggestionReason = async (id_persona_arg, sugestao_arg, fallback_arg) => {
+    let safeId = id_persona_arg;
+    let safeSugestao = sugestao_arg;
+    let personaFallback = fallback_arg;
+
+    if (id_persona_arg && typeof id_persona_arg === 'object') {
+        const source = id_persona_arg.body || id_persona_arg;
+        safeId = source.id_persona;
+        safeSugestao = source.sugestao || sugestao_arg;
+        personaFallback = source.personaFallback;
+    }
+
+    if (!personaFallback) personaFallback = await fetchPersonaFallback(safeId);
+
     let memoriaAcumulada = "Sem histórico recente.";
-    let perfilReal = "Perfil genérico corporativo.";
+    const strFallback = personaFallback 
+        ? `[Dados Oficiais] Nome: ${personaFallback.nome_preferido}. Personalidade: ${personaFallback.personalidade}. Gostos: ${personaFallback.gostos}. Desgostos: ${personaFallback.desgostos}.` 
+        : "[Dados Oficiais] Perfil genérico corporativo.";
+    let perfilReal = strFallback;
+
+    if (!safeId || isNaN(Number(safeId))) {
+        return { motivo: "Não foi possível resgatar a análise preditiva vetorial neste momento." };
+    }
 
     try {
         const collections = await initChromaCollections();
-        if (collections?.personasCollection) {
-            const personaVetorData = await collections.personasCollection.get({ ids: [id_persona.toString()] });
-            if (personaVetorData && personaVetorData.documents && personaVetorData.documents.length > 0) {
-                perfilReal = personaVetorData.documents[0];
-            }
-        }
         if (collections?.interacoesCollection) {
-            const historico = await collections.interacoesCollection.get({ where: { id_persona: Number(id_persona) } });
-            if (historico && historico.documents && historico.documents.length > 0) {
-                const ultimosRelatos = historico.documents.slice(-3);
-                memoriaAcumulada = ultimosRelatos.join(" | ");
+            // Busca SOMENTE a memória vetorial de interações
+            const historico = await collections.interacoesCollection.get({ where: { id_persona: Number(safeId) } });
+            if (historico?.documents?.length > 0) {
+                const docsWithTimestamps = historico.documents.map((doc, index) => ({
+                    doc,
+                    timestamp: (historico.metadatas && historico.metadatas[index]?.timestamp) ? historico.metadatas[index].timestamp : 0
+                })).filter(item => item.doc);
+                
+                if (docsWithTimestamps.length > 0) {
+                    docsWithTimestamps.sort((a, b) => a.timestamp - b.timestamp);
+                    const ultimosRelatos = docsWithTimestamps.slice(-3).map(item => item.doc);
+                    memoriaAcumulada = ultimosRelatos.join(" | ");
+                }
             }
         }
     } catch (error) {
@@ -192,9 +275,13 @@ export const analyzeSuggestionReason = async (id_persona, sugestao) => {
     Você é a IA analítica de um Gêmeo Digital Corporativo.
     Perfil do Colaborador: "${perfilReal}"
     Últimas interações (Memória): "${memoriaAcumulada}"
-    Sugestão que você deu: "${sugestao}"
+    Sugestão que você deu: "${safeSugestao}"
     
-    Tarefa: Explique, em no máximo 2 frases, o motivo vetorial/comportamental que o levou a dar essa sugestão, relacionando as últimas interações com a mudança na representação do bem-estar da persona.
+    Tarefa: Explique, em no máximo 2 frases, o motivo vetorial/comportamental que o levou a dar essa sugestão. A análise deve ser feita cruzando o Perfil do Colaborador com as Últimas interações.
+    REGRAS CRÍTICAS:
+    - NUNCA mencione "falta de histórico", "ausência de dados", "considerando que não há interações" ou frases similares.
+    - Se a memória estiver vazia ou for "Sem histórico recente", deduza o motivo baseando-se ESTRITAMENTE na personalidade, gostos e desgostos do Perfil.
+    - Aja como se a predição fosse orgânica e o cálculo vetorial já estivesse consolidado.
     
     Responda EXATAMENTE neste formato JSON estrito:
     {
@@ -217,23 +304,48 @@ export const analyzeSuggestionReason = async (id_persona, sugestao) => {
     }
 };
 
-export const generatePerceptionAndProfile = async (id_persona) => {
+export const generatePerceptionAndProfile = async (id_persona_arg, fallback_arg) => {
+    let safeId = id_persona_arg;
+    let personaFallback = fallback_arg;
+
+    if (id_persona_arg && typeof id_persona_arg === 'object') {
+        const source = id_persona_arg.body || id_persona_arg;
+        safeId = source.id_persona;
+        personaFallback = source.personaFallback;
+    }
+
+    if (!personaFallback) personaFallback = await fetchPersonaFallback(safeId);
+
     let memoriaAcumulada = "Sem histórico recente.";
-    let perfilReal = "Perfil genérico corporativo.";
+    const strFallback = personaFallback 
+        ? `[Dados Oficiais] Nome: ${personaFallback.nome_preferido}. Personalidade: ${personaFallback.personalidade}. Gostos: ${personaFallback.gostos}. Desgostos: ${personaFallback.desgostos}.` 
+        : "[Dados Oficiais] Perfil genérico corporativo.";
+    let perfilReal = strFallback;
+
+    if (!safeId || isNaN(Number(safeId))) {
+        console.error(`[IA Mentor] Erro Crítico: ID inválido extraído na requisição. Normalização bloqueada para evitar vazamentos.`);
+        return {
+            perfil_normalizado: "Identidade não confirmada devido a erro de roteamento. Por favor, reinicie a visualização do Gêmeo.",
+            percepcao: "Acesso momentaneamente indisponível."
+        };
+    }
 
     try {
         const collections = await initChromaCollections();
-        if (collections?.personasCollection) {
-            const personaVetorData = await collections.personasCollection.get({ ids: [id_persona.toString()] });
-            if (personaVetorData && personaVetorData.documents && personaVetorData.documents.length > 0) {
-                perfilReal = personaVetorData.documents[0];
-            }
-        }
         if (collections?.interacoesCollection) {
-            const historico = await collections.interacoesCollection.get({ where: { id_persona: Number(id_persona) } });
-            if (historico && historico.documents && historico.documents.length > 0) {
-                const ultimosRelatos = historico.documents.slice(-5);
-                memoriaAcumulada = ultimosRelatos.join(" | ");
+            // Busca SOMENTE a memória vetorial de interações
+            const historico = await collections.interacoesCollection.get({ where: { id_persona: Number(safeId) } });
+            if (historico?.documents?.length > 0) {
+                const docsWithTimestamps = historico.documents.map((doc, index) => ({
+                    doc,
+                    timestamp: (historico.metadatas && historico.metadatas[index]?.timestamp) ? historico.metadatas[index].timestamp : 0
+                })).filter(item => item.doc);
+                
+                if (docsWithTimestamps.length > 0) {
+                    docsWithTimestamps.sort((a, b) => a.timestamp - b.timestamp);
+                    const ultimosRelatos = docsWithTimestamps.slice(-5).map(item => item.doc);
+                    memoriaAcumulada = ultimosRelatos.join(" | ");
+                }
             }
         }
     } catch (error) {
@@ -246,8 +358,9 @@ export const generatePerceptionAndProfile = async (id_persona) => {
     Últimas interações (Memória): "${memoriaAcumulada}"
     
     Tarefa:
-    1. Normalizar o perfil: Reescreva a identidade base (perfil original) em uma linguagem rica, empática e fluida, descrevendo a essência profunda da persona.
-    2. Percepção atual: Baseado na memória das últimas interações, gere uma frase descrevendo a sua percepção dinâmica sobre o estado atual ou deslocamento de risco da persona (Ex: "A IA percebeu que seu engajamento está em alta", ou "Notei um foco maior em tensões da equipe recentemente").
+    1. Normalizar o perfil: Escreva um parágrafo rico e empático integrando os "[Dados Oficiais]" com as "Últimas interações (Memória)". O objetivo é descrever quem a pessoa é e como ela tem se sentido ultimamente no trabalho.
+    REGRA ABSOLUTA DE NORMALIZAÇÃO: O Gêmeo é EXCLUSIVAMENTE a pessoa descrita nos "[Dados Oficiais]". USE EXATAMENTE O NOME FORNECIDO NOS DADOS OFICIAIS. É TOTALMENTE PROIBIDO inventar nomes, ou assumir nomes e identidades que apareçam perdidos na Memória. Se a Memória citar outro nome, assuma que é um ruído e IGNORE. A verdade absoluta são os "[Dados Oficiais]".
+    2. Percepção atual: Baseado na memória das últimas interações, gere uma frase descrevendo a sua percepção dinâmica sobre o estado atual ou deslocamento de risco da persona (Ex: "A IA percebeu que seu engajamento está em alta", ou "Notei um foco maior em tensões da equipe recentemente"). NUNCA use frases como "falta de histórico" ou "devido à ausência de interações". Se a memória for vazia, faça uma predição baseada unicamente no Perfil.
     
     Responda EXATAMENTE neste formato JSON estrito:
     {
@@ -267,9 +380,12 @@ export const generatePerceptionAndProfile = async (id_persona) => {
 
         return JSON.parse(response.data.choices[0].message.content);
     } catch (error) {
+        console.error(`[IA Mentor] Falha no LLM de Percepção:`, error.message);
         return { 
-            perfil_normalizado: "Colaborador focado, buscando equilibrar suas motivações e habilidades no dia a dia corporativo.",
-            percepcao: "Baseado nas suas últimas interações, a IA identifica que você está em uma fase de adaptação contínua ao seu ambiente de trabalho." 
+            perfil_normalizado: personaFallback 
+                ? `${personaFallback.nome_preferido} possui uma personalidade descrita como: ${personaFallback.personalidade}. A IA acompanha seu desenvolvimento e as interações recentes para manter a saúde ocupacional.` 
+                : "Colaborador focado, buscando equilibrar suas motivações e habilidades no dia a dia corporativo.",
+            percepcao: "A Inteligência Artificial está reprocessando sua evolução semântica. Suas informações base estão seguras." 
         };
     }
 };

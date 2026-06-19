@@ -1,30 +1,30 @@
 {
     "metadata": {
-        "grupos_analisados_n": 10,
-        "meses_avaliados_k": 5,
-        "total_medicoes_N": 50,
-        "media_global": "77.80"
+        "grupos_analisados_n": 5,
+        "meses_avaliados_k": 3,
+        "total_medicoes_N": 15,
+        "media_global": "74.60"
     },
     "tabela_anova": {
         "efeito_tempo_mensal": {
-            "Soma_Quadrados": "534.40",
-            "Grau_Liberdade": 4,
-            "Media_Quadrados": "133.60",
-            "Valor_F": "0.6317"
+            "Soma_Quadrados": "5.20",
+            "Grau_Liberdade": 2,
+            "Media_Quadrados": "2.60",
+            "Valor_F": "0.4575"
         },
         "erro_residual": {
-            "Soma_Quadrados": "7613.20",
-            "Grau_Liberdade": 36,
-            "Media_Quadrados": "211.48"
+            "Soma_Quadrados": "45.47",
+            "Grau_Liberdade": 8,
+            "Media_Quadrados": "5.68"
         },
         "entre_sujeitos_grupos": {
-            "Soma_Quadrados": "444.40",
-            "Grau_Liberdade": 9
+            "Soma_Quadrados": "316.93",
+            "Grau_Liberdade": 4
         },
         "total": {
-            "Soma_Quadrados": "8592.00",
-            "Grau_Liberdade": 49
+            "Soma_Quadrados": "367.60",
+            "Grau_Liberdade": 14
         }
     },
-    "diagnostico_ia": "SEM EFEITO SIGNIFICATIVO (F=0.63). A flutuação dos scores ao longo dos meses pode ser decorrente do acaso, indicando necessidade de revisar as sugestões estratégicas geradas pela IA."
+    "diagnostico_ia": "SEM EFEITO SIGNIFICATIVO (F=0.46). A flutuação dos scores ao longo dos meses pode ser decorrente do acaso, indicando necessidade de revisar as sugestões estratégicas geradas pela IA."
 }

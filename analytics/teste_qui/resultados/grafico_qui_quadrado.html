@@ -18,9 +18,9 @@
         <p>Gráfico de barras agrupadas ilustrando a tabela de contingência utilizada no cálculo do Qui-Quadrado.</p>
         <canvas id="chiSquareChart"></canvas>
         <div style="margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px;">
-            <strong>Valor de χ²:</strong> 13.5270 <br/>
+            <strong>Valor de χ²:</strong> 35.0234 <br/>
             <strong>Graus de Liberdade:</strong> 18 <br/>
-            <strong>Conclusão:</strong> INDEPENDENTES. As flutuações entre eixos são condizentes com o acaso. O eixo ESG não altera estatisticamente a probabilidade do tipo de feedback ("Boa", "Ruim", "Indiferente").
+            <strong>Conclusão:</strong> EFEITO SIGNIFICATIVO ENCONTRADO. A aceitação varia dependendo do eixo ESG abordado, sugerindo que as intervenções da IA funcionam melhor em alguns temas do que em outros.
         </div>
     </div>
     <script>
@@ -30,9 +30,9 @@
             data: {
                 labels: ["Clima organizacional e engajamento","Desenvolvimento e crescimento profissional","Diversidade, equidade e inclusão (DEI)","Equilíbrio entre vida pessoal e profissional (work-life balance)","Qualidade das relações interpessoais","Reconhecimento e recompensas","Saúde física","Saúde mental e emocional","Segurança e saúde ocupacional","Segurança psicológica e cultura de escuta"],
                 datasets: [
-                    { label: 'Boa', data: [430,448,542,470,377,412,532,409,437,424], backgroundColor: 'rgba(54, 162, 235, 0.7)', borderColor: 'rgb(54, 162, 235)', borderWidth: 1 },
-                    { label: 'Indiferente', data: [433,398,532,465,377,411,508,405,388,426], backgroundColor: 'rgba(201, 203, 207, 0.7)', borderColor: 'rgb(201, 203, 207)', borderWidth: 1 },
-                    { label: 'Ruim', data: [462,462,503,460,340,429,513,394,424,441], backgroundColor: 'rgba(255, 99, 132, 0.7)', borderColor: 'rgb(255, 99, 132)', borderWidth: 1 }
+                    { label: 'Boa', data: [67,105,55,43,75,79,75,119,21,92], backgroundColor: 'rgba(54, 162, 235, 0.7)', borderColor: 'rgb(54, 162, 235)', borderWidth: 1 },
+                    { label: 'Indiferente', data: [4,7,4,4,12,7,10,2,1,2], backgroundColor: 'rgba(201, 203, 207, 0.7)', borderColor: 'rgb(201, 203, 207)', borderWidth: 1 },
+                    { label: 'Ruim', data: [4,6,1,7,5,3,10,4,1,3], backgroundColor: 'rgba(255, 99, 132, 0.7)', borderColor: 'rgb(255, 99, 132)', borderWidth: 1 }
                 ]
             },
             options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Nº de Interações' } } }, plugins: { legend: { position: 'top' } } }

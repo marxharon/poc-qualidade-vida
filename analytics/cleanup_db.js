@@ -28,6 +28,7 @@ async function cleanup() {
         
         // TRUNCATE com CASCADE limpa as tabelas mantendo as dependências íntegras
         // Note que eixos_esg é mantida intacta pois é base de domínio.
+        // RESTART IDENTITY garante que as sequences vão voltar para o ID 1
         const query = `
             TRUNCATE TABLE 
                 historico_evolucao_esg, 
@@ -35,10 +36,10 @@ async function cleanup() {
                 personas, 
                 colaboradores,
                 gemeos_organizacionais
-            CASCADE;
+            RESTART IDENTITY CASCADE;
         `;
         await client.query(query);
-        console.log('   ✅ Dados relacionais do PostgreSQL limpos com sucesso!');
+        console.log('   ✅ Dados relacionais do PostgreSQL limpos e IDs resetados com sucesso!');
     } catch (error) {
         console.error('   ❌ Erro ao limpar PostgreSQL:', error.message);
     } finally {
@@ -50,17 +51,25 @@ async function cleanup() {
         console.log('🧠 Conectando ao ChromaDB para remover coleções vetoriais (memória da IA)...');
         const colecoesAlvo = ['personas_base_embeddings', 'memoria_interacoes_embeddings'];
         
-        // Busca as coleções existentes
+        // Busca as coleções existentes primeiro para evitar erros na exclusão e abranger versões
         const res = await axios.get(`${CHROMADB_URL}/api/v1/collections`);
         const collectionsExistentes = res.data || [];
-        
+
         for (const col of collectionsExistentes) {
             if (colecoesAlvo.includes(col.name)) {
-                // Tenta remover usando o ID ou Nome da coleção, dependendo da versão do ChromaDB
-                await axios.delete(`${CHROMADB_URL}/api/v1/collections/${col.name}`).catch(async () => {
-                    if (col.id) await axios.delete(`${CHROMADB_URL}/api/v1/collections/${col.id}`);
-                });
-                console.log(`   ✅ Coleção vetorial '${col.name}' removida com sucesso.`);
+                try {
+                    await axios.delete(`${CHROMADB_URL}/api/v1/collections/${col.name}`);
+                    console.log(`   ✅ Coleção vetorial '${col.name}' removida com sucesso.`);
+                } catch (e) {
+                    try {
+                        if (col.id) {
+                            await axios.delete(`${CHROMADB_URL}/api/v1/collections/${col.id}`);
+                            console.log(`   ✅ Coleção vetorial '${col.name}' removida com sucesso (por ID).`);
+                        }
+                    } catch (err) {
+                        console.log(`   ⚠️ Falha ao remover coleção vetorial '${col.name}'.`);
+                    }
+                }
             }
         }
         console.log('   ✅ Limpeza do banco vetorial ChromaDB concluída!');

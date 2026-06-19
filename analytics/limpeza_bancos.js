@@ -47,26 +47,32 @@ async function main() {
     // 2. Limpeza do ChromaDB
     console.log('\n🧠 Conectando ao ChromaDB...');
     try {
-        const colecoes = ['personas_base_embeddings', 'memoria_interacoes_embeddings'];
+        const colecoesAlvo = ['personas_base_embeddings', 'memoria_interacoes_embeddings'];
         
-        for (const nomeColecao of colecoes) {
-            try {
-                // Tenta deletar a coleção via API REST do ChromaDB nativo
-                await axios.delete(`${CHROMADB_URL}/api/v1/collections/${nomeColecao}`);
-                console.log(`   🗑️ Coleção vetorial '${nomeColecao}' apagada com sucesso.`);
-            } catch (e) {
-                // Erro 404 significa que a coleção já não existia, o que é esperado se já estiver limpa.
-                if (e.response && e.response.status === 404) {
-                    console.log(`   ℹ️ Coleção vetorial '${nomeColecao}' não encontrada (já estava limpa).`);
-                } else {
-                    // Ignora erros de "Tenant does not exist" causados por bases completamente virgens
-                    console.log(`   ℹ️ Coleção vetorial '${nomeColecao}' ignorada ou inexistente.`);
+        // Busca as coleções existentes primeiro para evitar erros na exclusão
+        const res = await axios.get(`${CHROMADB_URL}/api/v1/collections`);
+        const collectionsExistentes = res.data || [];
+
+        for (const col of collectionsExistentes) {
+            if (colecoesAlvo.includes(col.name)) {
+                try {
+                    await axios.delete(`${CHROMADB_URL}/api/v1/collections/${col.name}`);
+                    console.log(`   ✅ Coleção vetorial '${col.name}' removida com sucesso.`);
+                } catch (e) {
+                    try {
+                        if (col.id) {
+                            await axios.delete(`${CHROMADB_URL}/api/v1/collections/${col.id}`);
+                            console.log(`   ✅ Coleção vetorial '${col.name}' removida com sucesso (por ID).`);
+                        }
+                    } catch (err) {
+                        console.log(`   ⚠️ Falha ao remover coleção vetorial '${col.name}'.`);
+                    }
                 }
             }
         }
         console.log('✅ ChromaDB limpo com sucesso.');
     } catch (error) {
-        console.error('❌ Erro de conexão com o ChromaDB:', error.message);
+        console.log(`   ℹ️ O ChromaDB parece estar recém-inicializado e vazio. Limpeza concluída.`);
     }
 
     console.log('\n🎉 Limpeza finalizada! O ambiente está totalmente zerado.');

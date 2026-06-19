@@ -1,234 +1,234 @@
 {
     "metadados": {
-        "num_amostras_gemeos": 100,
+        "num_amostras_gemeos": 40,
         "num_eixos": 10
     },
     "nota_cientifica": "Devido aos dados serem baseados numa Simulação Randomizada de Monte Carlo, as correlações naturalmente apresentarão valores muito próximos a 0 (estatisticamente fracos e independentes). Em dados humanos reais capturados pela POC, observar-se-á maiores tendências (ex: > 0.6).",
     "pares_de_correlacao": [
         {
+            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "eixoB": "Qualidade das relações interpessoais",
+            "coeficiente": 0.7828675433675188
+        },
+        {
+            "eixoA": "Qualidade das relações interpessoais",
+            "eixoB": "Saúde física",
+            "coeficiente": 0.780041815815586
+        },
+        {
+            "eixoA": "Diversidade, equidade e inclusão (DEI)",
+            "eixoB": "Saúde mental e emocional",
+            "coeficiente": 0.7706215425061325
+        },
+        {
+            "eixoA": "Diversidade, equidade e inclusão (DEI)",
+            "eixoB": "Segurança psicológica e cultura de escuta",
+            "coeficiente": 0.7071561888937714
+        },
+        {
+            "eixoA": "Qualidade das relações interpessoais",
+            "eixoB": "Saúde mental e emocional",
+            "coeficiente": 0.6984733498247401
+        },
+        {
+            "eixoA": "Saúde física",
+            "eixoB": "Segurança e saúde ocupacional",
+            "coeficiente": 0.6917387498632543
+        },
+        {
+            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "eixoB": "Saúde mental e emocional",
+            "coeficiente": 0.6911949825472635
+        },
+        {
+            "eixoA": "Diversidade, equidade e inclusão (DEI)",
+            "eixoB": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "coeficiente": 0.6840039507840342
+        },
+        {
+            "eixoA": "Saúde física",
+            "eixoB": "Saúde mental e emocional",
+            "coeficiente": 0.6759024313652366
+        },
+        {
+            "eixoA": "Desenvolvimento e crescimento profissional",
+            "eixoB": "Qualidade das relações interpessoais",
+            "coeficiente": 0.669984639547296
+        },
+        {
+            "eixoA": "Desenvolvimento e crescimento profissional",
+            "eixoB": "Diversidade, equidade e inclusão (DEI)",
+            "coeficiente": 0.6551366959173139
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Saúde física",
+            "coeficiente": 0.6409161617144727
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Segurança e saúde ocupacional",
+            "coeficiente": 0.6345795350975697
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Qualidade das relações interpessoais",
+            "coeficiente": 0.6341794325596645
+        },
+        {
             "eixoA": "Qualidade das relações interpessoais",
             "eixoB": "Reconhecimento e recompensas",
-            "coeficiente": 0.7793887067800752
+            "coeficiente": 0.6320207272547793
+        },
+        {
+            "eixoA": "Diversidade, equidade e inclusão (DEI)",
+            "eixoB": "Qualidade das relações interpessoais",
+            "coeficiente": 0.6245959073206903
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Reconhecimento e recompensas",
+            "coeficiente": 0.6152530428826372
+        },
+        {
+            "eixoA": "Desenvolvimento e crescimento profissional",
+            "eixoB": "Saúde mental e emocional",
+            "coeficiente": 0.6028986712190855
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Segurança psicológica e cultura de escuta",
+            "coeficiente": 0.5905141340560105
+        },
+        {
+            "eixoA": "Desenvolvimento e crescimento profissional",
+            "eixoB": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "coeficiente": 0.5885579173943026
+        },
+        {
+            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "eixoB": "Saúde física",
+            "coeficiente": 0.5796851942616996
+        },
+        {
+            "eixoA": "Desenvolvimento e crescimento profissional",
+            "eixoB": "Saúde física",
+            "coeficiente": 0.5707757159000363
+        },
+        {
+            "eixoA": "Desenvolvimento e crescimento profissional",
+            "eixoB": "Reconhecimento e recompensas",
+            "coeficiente": 0.5664914196189591
+        },
+        {
+            "eixoA": "Diversidade, equidade e inclusão (DEI)",
+            "eixoB": "Saúde física",
+            "coeficiente": 0.5552490307875276
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "coeficiente": 0.5470629773526535
+        },
+        {
+            "eixoA": "Saúde mental e emocional",
+            "eixoB": "Segurança psicológica e cultura de escuta",
+            "coeficiente": 0.5461970800044361
+        },
+        {
+            "eixoA": "Reconhecimento e recompensas",
+            "eixoB": "Segurança psicológica e cultura de escuta",
+            "coeficiente": 0.5422654547292898
+        },
+        {
+            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "eixoB": "Reconhecimento e recompensas",
+            "coeficiente": 0.5228188445767719
+        },
+        {
+            "eixoA": "Desenvolvimento e crescimento profissional",
+            "eixoB": "Segurança e saúde ocupacional",
+            "coeficiente": 0.5038571411026888
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Saúde mental e emocional",
+            "coeficiente": 0.5027365016852142
+        },
+        {
+            "eixoA": "Reconhecimento e recompensas",
+            "eixoB": "Saúde física",
+            "coeficiente": 0.4808943059175758
+        },
+        {
+            "eixoA": "Qualidade das relações interpessoais",
+            "eixoB": "Segurança psicológica e cultura de escuta",
+            "coeficiente": 0.47776344151333994
+        },
+        {
+            "eixoA": "Diversidade, equidade e inclusão (DEI)",
+            "eixoB": "Reconhecimento e recompensas",
+            "coeficiente": 0.46543238023098865
+        },
+        {
+            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "eixoB": "Segurança psicológica e cultura de escuta",
+            "coeficiente": 0.44317536353169923
+        },
+        {
+            "eixoA": "Reconhecimento e recompensas",
+            "eixoB": "Saúde mental e emocional",
+            "coeficiente": 0.4341500268612772
+        },
+        {
+            "eixoA": "Clima organizacional e engajamento",
+            "eixoB": "Diversidade, equidade e inclusão (DEI)",
+            "coeficiente": 0.42844745604268786
+        },
+        {
+            "eixoA": "Qualidade das relações interpessoais",
+            "eixoB": "Segurança e saúde ocupacional",
+            "coeficiente": 0.4283112383391943
         },
         {
             "eixoA": "Segurança e saúde ocupacional",
             "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": 0.7274571662823558
-        },
-        {
-            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "eixoB": "Saúde mental e emocional",
-            "coeficiente": 0.6900581211724192
-        },
-        {
-            "eixoA": "Qualidade das relações interpessoais",
-            "eixoB": "Saúde mental e emocional",
-            "coeficiente": 0.6086748953003495
-        },
-        {
-            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "eixoB": "Reconhecimento e recompensas",
-            "coeficiente": 0.6014924494591144
-        },
-        {
-            "eixoA": "Saúde mental e emocional",
-            "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": 0.5595513359792325
-        },
-        {
-            "eixoA": "Desenvolvimento e crescimento profissional",
-            "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": 0.5349140991564312
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": 0.50542851629765
-        },
-        {
-            "eixoA": "Diversidade, equidade e inclusão (DEI)",
-            "eixoB": "Saúde mental e emocional",
-            "coeficiente": -0.49289811558694896
-        },
-        {
-            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "eixoB": "Saúde física",
-            "coeficiente": -0.4887746708282241
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": -0.449423061222915
-        },
-        {
-            "eixoA": "Saúde física",
-            "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": -0.4444538755290661
-        },
-        {
-            "eixoA": "Diversidade, equidade e inclusão (DEI)",
-            "eixoB": "Qualidade das relações interpessoais",
-            "coeficiente": -0.4159620316475404
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "coeficiente": 0.3878135743341259
-        },
-        {
-            "eixoA": "Saúde física",
-            "eixoB": "Saúde mental e emocional",
-            "coeficiente": 0.38461250324685947
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Diversidade, equidade e inclusão (DEI)",
-            "coeficiente": -0.35782197190930987
-        },
-        {
-            "eixoA": "Desenvolvimento e crescimento profissional",
-            "eixoB": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "coeficiente": -0.35563959669655193
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Saúde física",
-            "coeficiente": 0.33640426886619706
-        },
-        {
-            "eixoA": "Diversidade, equidade e inclusão (DEI)",
-            "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": 0.30125650961424877
-        },
-        {
-            "eixoA": "Reconhecimento e recompensas",
-            "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": 0.2933610078206678
-        },
-        {
-            "eixoA": "Reconhecimento e recompensas",
-            "eixoB": "Saúde física",
-            "coeficiente": -0.28186501404001824
-        },
-        {
-            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": -0.2656817486485919
-        },
-        {
-            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "eixoB": "Qualidade das relações interpessoais",
-            "coeficiente": 0.25338328102294305
-        },
-        {
-            "eixoA": "Saúde mental e emocional",
-            "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": 0.23530707327958184
-        },
-        {
-            "eixoA": "Qualidade das relações interpessoais",
-            "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": -0.2199583475580668
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Reconhecimento e recompensas",
-            "coeficiente": 0.21518317504469353
-        },
-        {
-            "eixoA": "Saúde física",
-            "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": 0.20709109228670175
-        },
-        {
-            "eixoA": "Diversidade, equidade e inclusão (DEI)",
-            "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": 0.20695816619850274
-        },
-        {
-            "eixoA": "Desenvolvimento e crescimento profissional",
-            "eixoB": "Reconhecimento e recompensas",
-            "coeficiente": 0.19944174724382446
-        },
-        {
-            "eixoA": "Diversidade, equidade e inclusão (DEI)",
-            "eixoB": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "coeficiente": 0.1876129408343386
-        },
-        {
-            "eixoA": "Desenvolvimento e crescimento profissional",
-            "eixoB": "Qualidade das relações interpessoais",
-            "coeficiente": 0.1866417886394336
-        },
-        {
-            "eixoA": "Reconhecimento e recompensas",
-            "eixoB": "Saúde mental e emocional",
-            "coeficiente": -0.16592964636625623
-        },
-        {
-            "eixoA": "Qualidade das relações interpessoais",
-            "eixoB": "Saúde física",
-            "coeficiente": 0.16321609939261786
-        },
-        {
-            "eixoA": "Desenvolvimento e crescimento profissional",
-            "eixoB": "Saúde mental e emocional",
-            "coeficiente": -0.14279101438180192
+            "coeficiente": 0.4256614274769126
         },
         {
             "eixoA": "Desenvolvimento e crescimento profissional",
             "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": 0.12949910098381293
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Saúde mental e emocional",
-            "coeficiente": 0.11195530413359647
-        },
-        {
-            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
-            "eixoB": "Segurança psicológica e cultura de escuta",
-            "coeficiente": 0.0880778003650877
-        },
-        {
-            "eixoA": "Desenvolvimento e crescimento profissional",
-            "eixoB": "Diversidade, equidade e inclusão (DEI)",
-            "coeficiente": -0.059806076213359684
-        },
-        {
-            "eixoA": "Diversidade, equidade e inclusão (DEI)",
-            "eixoB": "Reconhecimento e recompensas",
-            "coeficiente": 0.05076424367770982
-        },
-        {
-            "eixoA": "Clima organizacional e engajamento",
-            "eixoB": "Qualidade das relações interpessoais",
-            "coeficiente": -0.035332580420663305
-        },
-        {
-            "eixoA": "Qualidade das relações interpessoais",
-            "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": 0.033774078703850706
+            "coeficiente": 0.4175982487515803
         },
         {
             "eixoA": "Clima organizacional e engajamento",
             "eixoB": "Desenvolvimento e crescimento profissional",
-            "coeficiente": -0.02606057709846806
+            "coeficiente": 0.41403581821023905
         },
         {
-            "eixoA": "Diversidade, equidade e inclusão (DEI)",
-            "eixoB": "Saúde física",
-            "coeficiente": 0.02543583472215113
+            "eixoA": "Saúde física",
+            "eixoB": "Segurança psicológica e cultura de escuta",
+            "coeficiente": 0.39453597320121353
         },
         {
             "eixoA": "Reconhecimento e recompensas",
             "eixoB": "Segurança e saúde ocupacional",
-            "coeficiente": -0.022156471009119563
+            "coeficiente": 0.36331771122157475
         },
         {
-            "eixoA": "Desenvolvimento e crescimento profissional",
-            "eixoB": "Saúde física",
-            "coeficiente": -0.010553845910865554
+            "eixoA": "Saúde mental e emocional",
+            "eixoB": "Segurança e saúde ocupacional",
+            "coeficiente": 0.18387034233909122
+        },
+        {
+            "eixoA": "Diversidade, equidade e inclusão (DEI)",
+            "eixoB": "Segurança e saúde ocupacional",
+            "coeficiente": 0.10536481224026112
+        },
+        {
+            "eixoA": "Equilíbrio entre vida pessoal e profissional (work-life balance)",
+            "eixoB": "Segurança e saúde ocupacional",
+            "coeficiente": -0.019229173794843735
         }
     ]
 }

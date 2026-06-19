@@ -14,48 +14,16 @@ dotenv.config(); // Tenta carregar .env local também, caso exista na pasta anal
 // Configurações da simulação
 const NUM_PERSONAS = 40; // Volume otimizado para POC 100% IA (Custo/Tempo reduzidos, clusters eficientes)
 const START_DATE = new Date('2026-03-01T12:00:00Z'); // Ajustado para 12h para evitar fuso horário retroceder para 12/2025
-const END_DATE = new Date('2026-05-31T12:00:00Z'); // Simulação de 1 trimestre preditivo (Jan-Mar)
+const END_DATE = new Date('2026-05-31T12:00:00Z'); // Simulação de 1 trimestre preditivo (Mar-Mai/2026)
 
 // Conexão com os serviços da POC
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://SEU_USUARIO:SUA_SENHA@localhost:5432/beqv_db';
 // Chaveamento de Ambiente: Local por padrão (IA-Service na porta 3002).
 const IA_SERVICE_URL = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
+const CHROMADB_URL = process.env.CHROMADB_URL || 'http://localhost:8000';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const { Client } = pg;
-
-async function gerarPersonasComIA() {
-    console.log('🤖 Solicitando à IA a geração de perfis corporativos diversos para as personas...');
-    if (OPENAI_API_KEY) {
-        try {
-            const response = await axios.post(
-                'https://api.openai.com/v1/chat/completions',
-                {
-                    model: 'gpt-3.5-turbo',
-                    messages: [{
-                        role: 'system',
-                        content: 'Gere 10 perfis de personas corporativas com personalidades diversas (ex: ansioso, workaholic, equilibrado, procrastinador). Retorne APENAS um array JSON onde cada objeto tenha: personalidade, gostos, desgostos, relacao_equipe, sentimento_trabalho, motivacoes, hardskills_softskills.'
-                    }]
-                },
-                { headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
-            );
-            return JSON.parse(response.data.choices[0].message.content);
-        } catch (error) {
-            console.log('⚠️ Falha ao contatar OpenAI. Utilizando perfis gerados por IA localmente.');
-        }
-    } else {
-        console.log('⚠️ OPENAI_API_KEY não encontrada. Utilizando perfis de fallback mockados da IA.');
-    }
-
-    // Fallback de arquétipos estruturados
-    return [
-        { personalidade: "Introvertido e analítico", gostos: "Ler documentação, silêncio", desgostos: "Reuniões longas", relacao_equipe: "Distante mas prestativo", sentimento_trabalho: "Focado", motivacoes: "Resolver problemas complexos", hardskills_softskills: "Programação, Foco" },
-        { personalidade: "Extrovertido e comunicativo", gostos: "Trabalho em equipe, brainstorms", desgostos: "Rotina isolada", relacao_equipe: "Muito colaborativo", sentimento_trabalho: "Motivado", motivacoes: "Reconhecimento", hardskills_softskills: "Comunicação, Liderança" },
-        { personalidade: "Ansioso e perfeccionista", gostos: "Processos bem definidos", desgostos: "Prazos curtos e surpresas", relacao_equipe: "Evita conflitos", sentimento_trabalho: "Frequentemente sobrecarregado", motivacoes: "Estabilidade", hardskills_softskills: "Organização, Design" },
-        { personalidade: "Procrastinador criativo", gostos: "Liberdade de horários", desgostos: "Microgerenciamento", relacao_equipe: "Bem humorado", sentimento_trabalho: "Sobe e desce de energia", motivacoes: "Inovação", hardskills_softskills: "Criatividade, Resolução" },
-        { personalidade: "Workaholic focado em metas", gostos: "Desafios difíceis, horas extras", desgostos: "Pausas prolongadas", relacao_equipe: "Competitivo", sentimento_trabalho: "Acelerado", motivacoes: "Crescimento de carreira", hardskills_softskills: "Gestão, Negociação" }
-    ];
-}
 
 async function main() {
     console.log('🚀 Iniciando Simulação de Monte Carlo para POC de Qualidade de Vida...');
@@ -71,91 +39,198 @@ async function main() {
         if (eixos.length === 0) {
             throw new Error("Tabela 'eixos_esg' vazia. Execute o seed do backend primeiro.");
         }
+        const nomesEixosStr = eixos.map(e => e.nome).join('; ');
 
-        // 2. Gerar arquétipos base com IA
-        const arquetipos = await gerarPersonasComIA();
-        const personasCriadas = [];
+        // Integração com ChromaDB para sincronizar a memória vetorial
+        let interacoesCollectionId = 'memoria_interacoes_embeddings'; // Fallback de nome padrão
+        try {
+            await axios.post(`${CHROMADB_URL}/api/v1/collections`, { name: 'memoria_interacoes_embeddings' }).catch(() => {});
+            const resCol = await axios.get(`${CHROMADB_URL}/api/v1/collections`);
+            const colData = resCol.data || [];
+            const foundCol = colData.find(c => c && c.name === 'memoria_interacoes_embeddings');
+            if (foundCol && foundCol.id) {
+                interacoesCollectionId = foundCol.id;
+            }
+        } catch (e) {
+            console.log('⚠️ Aviso: ChromaDB não acessível para gerir coleções no Monte Carlo.', e.message);
+        }
 
-        // 3. Criar os colaboradores e personas no banco de dados e ChromaDB
-        console.log(`\n👤 Criando ${NUM_PERSONAS} colaboradores e personas...`);
+        // 2. Preparação de Elementos Base (Pre-Anchoring)
+        const nomesBrasileiros = [
+            "Ana Souza", "Bruno Lima", "Carla Dias", "Daniel Gomes", "Eduarda Silva",
+            "Felipe Costa", "Gabriela Martins", "Henrique Alves", "Isabela Rocha", "João Fernandes",
+            "Karina Ribeiro", "Lucas Carvalho", "Mariana Santos", "Nicolas Pereira", "Olivia Ferreira",
+            "Pedro Rodrigues", "Quintino Ramos", "Rafaela Melo", "Samuel Barbosa", "Tatiana Castro",
+            "Ubirajara Nunes", "Vitória Moraes", "Wagner Araujo", "Ximena Correia", "Yuri Mendes",
+            "Zelia Vieira", "André Machado", "Beatriz Farias", "Caio Teixeira", "Daniela Cavalcanti",
+            "Eduardo Batista", "Fernanda Monteiro", "Gustavo Pires", "Helena Duarte", "Igor Freitas",
+            "Julia Nogueira", "Leonardo Marques", "Melissa Viana", "Nelson Barros", "Paula Cardoso",
+            "Renata Souza", "Thiago Moura", "Amanda Cunha", "Diego Mendes", "Camila Assis",
+            "Rodrigo Pinto", "Letícia Guedes", "Marcelo Peixoto", "Aline Novaes", "Fábio Brito"
+        ];
+        nomesBrasileiros.sort(() => Math.random() - 0.5);
+
+        const temasBase = [
+            "focados em TI e Operações (ex: Desenvolvedores, Analistas de Banco de Dados, Suporte de Redes)",
+            "focados em Liderança e Estratégia (ex: Gerentes, Tech Leads, Diretores, Product Owners)",
+            "focados em Design e Inovação (ex: UX/UI Designers, Pesquisadores, Arquitetos de Soluções)",
+            "focados em Processos e Qualidade (ex: Analistas de QA, Scrum Masters, Auditores, Compliance)",
+            "focados em Pessoas e Relacionamento (ex: Recursos Humanos, Comunicação Interna, Atendimento)"
+        ];
+
+        let previousPersona = null;
+        let interacoesInseridas = 0;
+
+        // 3. Pipeline Unitário: Gera Gêmeo, insere no banco, e simula todas as suas interações de uma vez
+        console.log(`\n👤 Processando Pipeline Unitário para ${NUM_PERSONAS} Gêmeos Digitais...`);
+        
         for (let i = 0; i < NUM_PERSONAS; i++) {
-            const arquetipo = arquetipos[i % arquetipos.length];
-            const email = `colab_simulado_${crypto.randomBytes(4).toString('hex')}@serpro.gov.br`;
+            const nomeAtual = nomesBrasileiros[i % nomesBrasileiros.length];
+            const temaAtual = temasBase[i % temasBase.length];
+            
+            console.log(`\n==================================================================`);
+            console.log(`⏳ [${i + 1}/${NUM_PERSONAS}] Gerando Gêmeo: ${nomeAtual} | Área: ${temaAtual.split('(')[0].trim()}`);
+            
+            let arquetipo = null;
+            let tentativas = 0;
+            
+            if (OPENAI_API_KEY && !OPENAI_API_KEY.includes('sua_chave')) {
+                while (!arquetipo && tentativas < 5) {
+                    tentativas++;
+                    try {
+                        // Compara APENAS com o indivíduo anterior para manter a criatividade rolando livremente
+                        const contextoAnterior = previousPersona 
+                            ? `\nATENÇÃO - REGRA DE OURO: NÃO crie um perfil com traços iguais ao perfil gerado anteriormente (Personalidade: ${previousPersona.personalidade}, Gostos: ${previousPersona.gostos}).` 
+                            : '';
 
-            // Insere Colaborador
+                        const response = await axios.post(
+                            'https://api.openai.com/v1/chat/completions',
+                            {
+                                model: 'gpt-3.5-turbo',
+                                messages: [{
+                                    role: 'system',
+                                    content: `Gere 1 perfil de persona corporativa. A pessoa DEVE atuar na área de ${temaAtual} e se chamar EXATAMENTE ${nomeAtual}.
+Crie para ${nomeAtual} uma personalidade ÚNICA e crível, com gostos, desgostos e motivações específicos difentes de ${contextoAnterior}
+Retorne RIGOROSAMENTE um objeto JSON contendo EXATAMENTE as seguintes chaves com os respectivos valores descritos:
+- "nome_preferido": O nome fornecido (${nomeAtual}).
+- "personalidade": Uma descrição concisa dos traços psicológicos, de socialização e de comportamento no trabalho.
+- "gostos": Hobbies ou preferências no ambiente de trabalho.
+- "desgostos": O que a pessoa evita no trato pessoal ou não gosta no trabalho.
+- "relacao_equipe": Como a pessoa interage com os colegas.
+- "sentimento_trabalho": Como a pessoa se sente atualmente em relação ao seu trabalho.
+- "motivacoes": O que impulsiona a pessoa profissionalmente.
+- "hardskills_softskills": Principais competências técnicas e comportamentais.`
+                                }],
+                                temperature: 0.95,
+                                response_format: { type: "json_object" }
+                            },
+                            { headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
+                        );
+                        
+                        const p_raw = JSON.parse(response.data.choices[0].message.content);
+                        
+                        // Proteção contra variação estrutural de resposta da IA
+                        let p = p_raw;
+                        if (p_raw.persona) p = p_raw.persona;
+                        if (p_raw.perfis && p_raw.perfis.length > 0) p = p_raw.perfis[0];
+                        
+                        const isRepetido = previousPersona && (
+                            previousPersona.personalidade.trim().toLowerCase() === (p.personalidade || '').trim().toLowerCase() ||
+                            previousPersona.gostos.trim().toLowerCase() === (p.gostos || '').trim().toLowerCase()
+                        );
+
+                        if (!isRepetido && p.personalidade && p.nome_preferido) {
+                            arquetipo = p;
+                        } else {
+                            console.log(`   ⚠️ Perfil semelhante ao anterior gerado. Tentando novamente (Tentativa ${tentativas})...`);
+                        }
+                    } catch (error) {
+                        console.log(`   ⚠️ Falha ao contatar OpenAI para o perfil. Detalhe: ${error.message}`);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                }
+            }
+            
+            if (!arquetipo) {
+                console.log(`   ⚠️ Usando Fallback mockado para o Gêmeo ${nomeAtual}`);
+                arquetipo = {
+                    nome_preferido: nomeAtual,
+                    personalidade: `Profissional focado em ${temaAtual.split('(')[0].trim()}`,
+                    gostos: "Trabalho em equipe e novos desafios",
+                    desgostos: "Reuniões não planejadas",
+                    relacao_equipe: "Colaborativo",
+                    sentimento_trabalho: "Motivado",
+                    motivacoes: "Crescimento na empresa",
+                    hardskills_softskills: "Organização, Comunicação"
+                };
+            }
+            
+            previousPersona = arquetipo;
+
+            // Insere Colaborador no BD Relacional
+            const email = `colab_simulado_${crypto.randomBytes(4).toString('hex')}@serpro.gov.br`;
             const resColab = await db.query(
                 'INSERT INTO colaboradores (credenciais_acesso) VALUES ($1) RETURNING id_colaborador',
                 [email]
             );
             const id_colaborador = resColab.rows[0].id_colaborador;
 
-            // Insere Persona
-            const nome = `Colaborador Simulado ${i + 1}`;
+            // Insere Persona no BD Relacional
             const resPersona = await db.query(`
                 INSERT INTO personas 
                 (id_colaborador, nome_preferido, personalidade, gostos, desgostos, relacao_equipe, sentimento_trabalho, motivacoes, hardskills_softskills, aceite_lgpd_termos)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id_persona
             `, [
-                id_colaborador, nome, arquetipo.personalidade, arquetipo.gostos, arquetipo.desgostos, 
+                id_colaborador, arquetipo.nome_preferido, arquetipo.personalidade, arquetipo.gostos, arquetipo.desgostos, 
                 arquetipo.relacao_equipe, arquetipo.sentimento_trabalho, arquetipo.motivacoes, arquetipo.hardskills_softskills, true
             ]);
             
             const id_persona = resPersona.rows[0].id_persona;
-            personasCriadas.push({ id_persona, arquetipo }); // Agora guardamos o perfil junto para passar para a IA depois
 
-            // Envia para o motor IA criar o Gêmeo Digital Vetorial no ChromaDB
+            // Envia para o IA Service processar a Base no Banco Vetorial
             try {
                 await axios.post(`${IA_SERVICE_URL}/twin`, {
-                    id_persona, respostasOnboarding: arquetipo
+                    id_persona, 
+                    respostasOnboarding: arquetipo
                 });
-            } catch (e) {
-                // Apenas ignora em caso de timeout local do LLM
-            }
-
-            if ((i + 1) % 100 === 0) console.log(`   ... ${i + 1} personas registradas.`);
-        }
-
-        // 4. Simular trajetórias temporais evolutivas para o Gêmeo Digital (App Mobile)
-        console.log(`\n💬 Simulando trajetórias temporais evolutivas via IA para ${NUM_PERSONAS} personas...`);
-        let interacoesInseridas = 0;
-
-        for (const personaData of personasCriadas) {
-            const { id_persona, arquetipo } = personaData;
+            } catch (e) { }
             
+            console.log(`   💬 Simulando e processando interações temporais para ${arquetipo.nome_preferido}...`);
             let currentMonthStart = new Date(START_DATE);
+            let historicoPerguntas = [];
             
             while (currentMonthStart <= END_DATE) {
                 const currentMonth = currentMonthStart.getMonth();
                     
-                // Chance de 15% da persona ter um mês "neutro" onde não interage ativamente
                 const isNeutral = Math.random() < 0.15;
-                if (!isNeutral) {
-                    const eixoFocoMes = eixos[Math.floor(Math.random() * eixos.length)];
-                    const nome_eixo = eixoFocoMes.nome;
-                    const id_eixo = eixoFocoMes.id_eixo;
                 
-                try {
-                    if (!OPENAI_API_KEY || OPENAI_API_KEY.includes('sua_chave')) throw new Error('Chave da OpenAI não configurada.');
-                    
-                    const promptMsg = `Atue como um simulador de Gêmeos Digitais Corporativos.
+                if (!isNeutral) {
+                    try {
+                        if (!OPENAI_API_KEY || OPENAI_API_KEY.includes('sua_chave')) throw new Error('Chave não configurada.');
+                        
+                        const promptMsg = `Atue como um simulador de Gêmeos Digitais Corporativos.
 Gere cerca de 8 interações sequenciais (1 mês) entre um Mentor IA e este colaborador:
-Perfil: ${arquetipo.personalidade} | Gostos: ${arquetipo.gostos} | Sentimento base: ${arquetipo.sentimento_trabalho}
-Eixo ESG Avaliado no Mês: ${nome_eixo}
+Nome: ${arquetipo.nome_preferido} | Perfil: ${arquetipo.personalidade} | Gostos: ${arquetipo.gostos} | Sentimento base: ${arquetipo.sentimento_trabalho}
+Lista de Eixos ESG válidos: ${nomesEixosStr}
+${historicoPerguntas.length > 0 ? `\nIMPORTANTE - Contexto Anterior: A IA já perguntou recentemente sobre: "${historicoPerguntas.slice(-8).join('" | "')}". NÃO REPITA ESSAS PERGUNTAS.` : ''}
 
 Atenção: As respostas devem formar uma NARRATIVA TEMPORAL evolutiva (ex: cansaço aumentando ou humor melhorando ao longo dos dias).
+Para CADA interação, simule a conversa e IDENTIFIQUE qual eixo ESG da lista fornecida melhor se adequa ao tema discutido.
+NÃO REPITA PERGUNTAS dentro deste mês.
 SEJA CONCISO E DIRETO nos diálogos para não exceder o limite de texto.
 Retorne RIGOROSAMENTE um objeto JSON contendo uma única chave chamada "interacoes", que deve ser um array de objetos com:
-- "pergunta_ia": "Pergunta curta"
+- "pergunta_ia": "Pergunta curta e INÉDITA"
 - "resposta_colaborador": "Relato em 1 pessoa (conciso)"
+- "eixo_esg_identificado": "Exatamente o nome de um dos eixos válidos informados acima"
 - "sugestao_ia": "Ação prática e curta"
 - "percentual_adesao": inteiro de 0 a 100 indicando a saúde demonstrada neste relato
-- "feedback_sugestao": "Boa", "Ruim" ou "Indiferente" avaliando a sugestão da IA recebida
+- "feedback_sugestao": "Boa", "Ruim" ou "Indiferente"
 `;
                         const iaRes = await axios.post('https://api.openai.com/v1/chat/completions', {
                             model: 'gpt-3.5-turbo',
                             messages: [{ role: 'user', content: promptMsg }],
-                            temperature: 0.8, // Levemente reduzido para focar na estrutura JSON
-                            response_format: { type: "json_object" } // Força a OpenAI a nunca cortar o JSON no meio
+                            temperature: 0.8,
+                            response_format: { type: "json_object" }
                         }, {
                             headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
                         });
@@ -170,42 +245,56 @@ Retorne RIGOROSAMENTE um objeto JSON contendo uma única chave chamada "interaco
                         const interacoesGeradas = parsedObject.interacoes || [];
                         
                         let interacaoDate = new Date(currentMonthStart);
-                        interacaoDate.setDate(2); // Começa no dia 2 do mês
+                        interacaoDate.setDate(2);
 
                         for (const interacao of interacoesGeradas) {
                             if (interacaoDate > END_DATE) break;
+
+                            // Identifica o id do eixo que a IA vinculou na resposta
+                            const eixoEncontrado = eixos.find(e => e.nome.trim().toLowerCase() === (interacao.eixo_esg_identificado || '').trim().toLowerCase());
+                            const id_eixo_dinamico = eixoEncontrado ? eixoEncontrado.id_eixo : eixos[Math.floor(Math.random() * eixos.length)].id_eixo;
+
+                            historicoPerguntas.push(interacao.pergunta_ia);
 
                             await db.query(`
                                 INSERT INTO interacoes 
                                 (id_persona, id_eixo, data_interacao, pergunta_ia, resposta_colaborador, sugestao_ia, percentual_adesao, feedback_sugestao)
                                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                             `, [
-                                id_persona, id_eixo, interacaoDate.toISOString(), 
+                                id_persona, id_eixo_dinamico, interacaoDate.toISOString(), 
                                 interacao.pergunta_ia, interacao.resposta_colaborador, interacao.sugestao_ia, 
                                 interacao.percentual_adesao || 75, interacao.feedback_sugestao || 'Indiferente'
                             ]);
 
+                            if (interacoesCollectionId) {
+                                try {
+                                    await axios.post(`${CHROMADB_URL}/api/v1/collections/${interacoesCollectionId}/upsert`, {
+                                        ids: [`${id_persona}-${interacaoDate.getTime()}-${Math.random().toString(36).substring(7)}`],
+                                        documents: [interacao.resposta_colaborador],
+                                        metadatas: [{ id_persona: Number(id_persona), eixo: id_eixo_dinamico, timestamp: interacaoDate.getTime() }]
+                                    });
+                                } catch (err) {
+                                }
+                            }
+
                             interacoesInseridas++;
                             
-                            // Avança de 3 a 4 dias para a próxima interação
                             interacaoDate.setDate(interacaoDate.getDate() + Math.floor(Math.random() * 2) + 3);
                             
-                            // Impede que as interações extrapolem para o próximo mês dentro deste laço
                             if (interacaoDate.getMonth() !== currentMonth) {
                                 break;
                             }
                         }
-                } catch (e) {
-                    console.error('⚠️ Falha ao acionar a OpenAI durante trajetória mensal evolutiva:', e.message);
+                    } catch (e) {
+                        console.error('   ⚠️ Falha ao acionar a OpenAI para interações mensais:', e.message);
+                    }
                 }
+                currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
+                currentMonthStart.setDate(1); 
             }
-
-            // Avança para o primeiro dia do próximo mês
-            currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
-            currentMonthStart.setDate(1); 
         }
-    }
-        console.log(`   ✅ ${interacoesInseridas} interações (diálogos IA x Humano) geradas com sucesso.`);
+
+        console.log(`\n   ✅ Pipeline finalizado. Total de ${interacoesInseridas} interações geradas com sucesso para todos os Gêmeos.`);
 
         // 5. Simulação da consolidação analítica V2 (Gêmeos Organizacionais Dinâmicos e Preditivos)
         console.log(`\n🧠 Consolidando agrupamentos Semânticos (Clustering Orgânico) para análise longitudinal...`);

@@ -23,8 +23,12 @@ export const getDailyQuestion = async (req, res) => {
         // Padronizado: Chama a IA localmente na porta 3002 por padrão.
         const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
         
+        // Envia também os dados estruturados (PostgreSQL) como âncora/fallback para o IA-Service
+        const checkPersonaFallback = await db.select().from(personas).where(eq(personas.id_persona, id_persona)).limit(1);
+        const personaFallback = checkPersonaFallback.length > 0 ? checkPersonaFallback[0] : null;
+
         // Envia para o serviço de IA consultar a essência vetorial no ChromaDB e formular uma pergunta hiper-personalizada
-        const iaResponse = await axios.post(`${iaServiceUrl}/daily-question`, { id_persona });
+        const iaResponse = await axios.post(`${iaServiceUrl}/daily-question`, { id_persona, personaFallback });
 
         res.status(200).json({ 
             question: iaResponse.data.question || "Como está a sua energia hoje?", 
@@ -61,11 +65,16 @@ export const respondToChat = async (req, res) => {
         // Padronizado: Chama a IA localmente na porta 3002 por padrão.
         const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
         let iaResponse;
+        
+        const checkPersonaFallback = await db.select().from(personas).where(eq(personas.id_persona, id_persona)).limit(1);
+        const personaFallback = checkPersonaFallback.length > 0 ? checkPersonaFallback[0] : null;
+
         try {
             iaResponse = await axios.post(`${iaServiceUrl}/chat`, {
                 id_persona, 
                 eixoESGSelecionado: "A classificar",
-                respostaColaboradorNatural: relato
+                respostaColaboradorNatural: relato,
+                personaFallback
             }, { timeout: 12000 }); // Limite de 12s para evitar Network Error do App
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service. Ativando Airbag de Chat.", iaError.message);
@@ -147,9 +156,17 @@ export const submitFeedback = async (req, res) => {
 
 export const analyzeSuggestion = async (req, res) => {
     try {
-        const { id_persona, sugestao } = req.query;
+        const { id_persona: reqPersonaId, sugestao } = req.query;
+        let id_persona = reqPersonaId ? parseInt(reqPersonaId) : null;
+        if (!id_persona) {
+            const lastPersona = await db.select().from(personas).orderBy(desc(personas.id_persona)).limit(1);
+            id_persona = lastPersona.length > 0 ? lastPersona[0].id_persona : 1;
+        }
+        const checkPersonaFallback = await db.select().from(personas).where(eq(personas.id_persona, id_persona)).limit(1);
+        const personaFallback = checkPersonaFallback.length > 0 ? checkPersonaFallback[0] : null;
+        
         const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
-        const iaResponse = await axios.post(`${iaServiceUrl}/analyze-suggestion`, { id_persona, sugestao });
+        const iaResponse = await axios.post(`${iaServiceUrl}/analyze-suggestion`, { id_persona, sugestao, personaFallback });
         res.status(200).json({ motivo: iaResponse.data.motivo });
     } catch (error) {
         console.error("Erro na Análise de Sugestão:", error.message);
@@ -159,9 +176,32 @@ export const analyzeSuggestion = async (req, res) => {
 
 export const getPerception = async (req, res) => {
     try {
-        const { id_persona } = req.query;
+        const { id_persona: reqPersonaId } = req.query;
+        let id_persona = reqPersonaId ? parseInt(reqPersonaId) : null;
+        if (!id_persona) {
+            const lastPersona = await db.select().from(personas).orderBy(desc(personas.id_persona)).limit(1);
+            id_persona = lastPersona.length > 0 ? lastPersona[0].id_persona : 1;
+        }
+        
+        const checkPersonaFallback = await db.select().from(personas).where(eq(personas.id_persona, id_persona)).limit(1);
+        const personaFallback = checkPersonaFallback.length > 0 ? checkPersonaFallback[0] : null;
+
         const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
-        const iaResponse = await axios.post(`${iaServiceUrl}/perception`, { id_persona });
+        
+        let iaResponse;
+        try {
+            // Tenta obter a percepção da IA, mas aborta se demorar mais que 15 segundos para evitar ECONNRESET
+            iaResponse = await axios.post(`${iaServiceUrl}/perception`, { id_persona, personaFallback }, { timeout: 15000 });
+        } catch (iaError) {
+            console.error("Aviso: Falha de conexão ou Timeout com o IA-Service em getPerception.", iaError.message);
+            iaResponse = { 
+                data: { 
+                    percepcao: "A IA não conseguiu analisar seus deslocamentos críticos recentes devido a uma instabilidade temporária na rede.",
+                    perfil_normalizado: "Perfil temporariamente indisponível para normalização rica. Tente recarregar a tela em alguns instantes."
+                } 
+            };
+        }
+
         res.status(200).json({ 
             percepcao: iaResponse.data.percepcao,
             perfil_normalizado: iaResponse.data.perfil_normalizado
