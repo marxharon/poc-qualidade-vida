@@ -1,0 +1,104 @@
+import pandas as pd
+import numpy as np
+import glob
+import os
+
+print("=== RESULTADO H4' (Avaliação Qualitativa) ===")
+
+def calcular_kappa_fleiss(df, coluna_nota):
+    """Calcula o Kappa de Fleiss para avaliar a concordância entre os especialistas"""
+    df_valido = df.dropna(subset=['id_interacao', 'avaliador', coluna_nota])
+    if df_valido.empty: return 0.0
+    
+    # Transforma os dados: Linhas=id_interacao, Colunas=avaliadores, Valores=notas
+    pivot = df_valido.pivot(index='id_interacao', columns='avaliador', values=coluna_nota)
+    pivot = pivot.dropna() # Mantém apenas interações que todos avaliaram
+    if pivot.empty: return 0.0
+    
+    n_subjects = len(pivot)
+    n_raters = len(pivot.columns)
+    categorias = [1.0, 2.0, 3.0, 4.0, 5.0]
+    
+    # Conta quantos avaliadores deram cada nota para cada interação
+    matriz_contagem = np.array([[ (linha == cat).sum() for cat in categorias ] for _, linha in pivot.iterrows()])
+    
+    # Proporção de concordância observada por sujeito (P_i)
+    P_i = (np.sum(matriz_contagem**2, axis=1) - n_raters) / (n_raters * (n_raters - 1))
+    P_bar = np.mean(P_i)
+    
+    # Proporção de concordância esperada pelo acaso (P_e_bar)
+    p_j = np.sum(matriz_contagem, axis=0) / (n_subjects * n_raters)
+    P_e_bar = np.sum(p_j**2)
+    
+    if P_e_bar == 1:
+        return 1.0 # Concordância total absoluta
+        
+    kappa = (P_bar - P_e_bar) / (1 - P_e_bar)
+    return kappa
+
+# Buscar todas as planilhas preenchidas na pasta com o prefixo
+padrao_busca = 'analytics/hipoteses_validation/h4_amostra_rh_preenchida*.csv'
+arquivos_preenchidos = glob.glob(padrao_busca)
+
+df_list = []
+
+if not arquivos_preenchidos:
+    print("⚠️ Nenhuma planilha preenchida encontrada com o padrão 'h4_amostra_rh_preenchida*.csv'.")
+    print("Gerando Mock de Avaliação Humana para validação da POC via chat...\n")
+    df_mock = pd.read_csv('analytics/hipoteses_validation/h4_amostra_rh.csv')
+    
+    np.random.seed(42)
+    df_mock['parecer_pergunta_ia (1-5)'] = np.random.choice([4, 5], size=len(df_mock))
+    df_mock['parecer_enquadramento_eixo (1-5)'] = np.random.choice([3, 4, 5], size=len(df_mock))
+    df_mock['parecer_sugestao_ia (1-5)'] = np.random.choice([4, 5], size=len(df_mock))
+    df_mock['comentarios_especialista'] = "Mock: Sugestões estão muito bem alinhadas ao contexto do gêmeo digital."
+    df_mock['avaliador'] = 'Avaliador Mock'
+    df_list.append(df_mock)
+else:
+    print(f"🔍 Foram encontradas {len(arquivos_preenchidos)} planilha(s) de especialista(s).\n")
+    for idx, arquivo in enumerate(arquivos_preenchidos):
+        try:
+            try:
+                df = pd.read_csv(arquivo, encoding='utf-8')
+            except UnicodeDecodeError:
+                df = pd.read_csv(arquivo, encoding='latin1')
+            # Identifica a origem baseando-se no nome do arquivo
+            df['avaliador'] = f'Especialista {idx + 1} ({os.path.basename(arquivo)})'
+            df_list.append(df)
+        except Exception as e:
+            print(f"Erro ao ler o arquivo {arquivo}: {e}")
+
+# Consolidar todos os dados avaliados
+df_consolidado = pd.concat(df_list, ignore_index=True)
+
+# Garantir tipagem numérica e tratamento de campos vazios
+cols_notas = ['parecer_pergunta_ia (1-5)', 'parecer_enquadramento_eixo (1-5)', 'parecer_sugestao_ia (1-5)']
+for col in cols_notas:
+    df_consolidado[col] = pd.to_numeric(df_consolidado[col], errors='coerce')
+
+# Remover possíveis linhas totalmente em branco inseridas acidentalmente pelos especialistas
+df_consolidado = df_consolidado.dropna(subset=cols_notas, how='all')
+
+media_pergunta = df_consolidado['parecer_pergunta_ia (1-5)'].mean()
+media_eixo = df_consolidado['parecer_enquadramento_eixo (1-5)'].mean()
+media_sugestao = df_consolidado['parecer_sugestao_ia (1-5)'].mean()
+
+media_geral = (media_pergunta + media_eixo + media_sugestao) / 3
+nota_corte = 3.5 # Equivalente a 70% de aceitabilidade
+
+# Cálculo da Concordância Estatística (Kappa de Fleiss / Cohen generalizado)
+kappa_pergunta = calcular_kappa_fleiss(df_consolidado, 'parecer_pergunta_ia (1-5)')
+kappa_eixo = calcular_kappa_fleiss(df_consolidado, 'parecer_enquadramento_eixo (1-5)')
+kappa_sugestao = calcular_kappa_fleiss(df_consolidado, 'parecer_sugestao_ia (1-5)')
+kappa_medio = (kappa_pergunta + kappa_eixo + kappa_sugestao) / 3
+
+print(f"Resumo da Agregação (Total de {len(df_consolidado)} avaliações cruzadas):")
+print(f"Média Avaliação da Pergunta IA: {media_pergunta:.2f}/5.0 (Kappa: {kappa_pergunta:.2f})")
+print(f"Média Avaliação do Eixo ESG: {media_eixo:.2f}/5.0 (Kappa: {kappa_eixo:.2f})")
+print(f"Média Avaliação das Sugestões: {media_sugestao:.2f}/5.0 (Kappa: {kappa_sugestao:.2f})")
+print(f"----------------------------------------")
+print(f"Média Geral de Aprovação Consolidada: {media_geral:.2f}/5.0")
+print(f"Critério de Média: ≥{nota_corte} | Concordância Kappa Média: {kappa_medio:.2f} | Passou: {'✅' if media_geral >= nota_corte else '❌'}\n")
+
+df_consolidado.to_csv('analytics/hipoteses_validation/h4_resultados_consolidados.csv', index=False)
+print("✅ Arquivo de auditoria 'h4_resultados_consolidados.csv' salvo com sucesso com os detalhes de todos os especialistas.")

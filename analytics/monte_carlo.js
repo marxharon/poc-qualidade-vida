@@ -212,14 +212,20 @@ Retorne RIGOROSAMENTE um objeto JSON contendo EXATAMENTE as seguintes chaves com
 Gere cerca de 8 interações sequenciais (1 mês) entre um Mentor IA e este colaborador:
 Nome: ${arquetipo.nome_preferido} | Perfil: ${arquetipo.personalidade} | Gostos: ${arquetipo.gostos} | Sentimento base: ${arquetipo.sentimento_trabalho}
 Lista de Eixos ESG válidos: ${nomesEixosStr}
-${historicoPerguntas.length > 0 ? `\nIMPORTANTE - Contexto Anterior: A IA já perguntou recentemente sobre: "${historicoPerguntas.slice(-8).join('" | "')}". NÃO REPITA ESSAS PERGUNTAS.` : ''}
+${historicoPerguntas.length > 0 ? `\nHISTÓRICO RECENTE DE PERGUNTAS (MEMÓRIA):
+A IA já fez as seguintes perguntas a este colaborador recentemente:
+[ ${historicoPerguntas.slice(-8).join(' ]\n[ ')} ]
+
+DIRETRIZES DE EVOLUÇÃO DA CONVERSA E UNICIDADE:
+1. CONTINUIDADE DO CONTEXTO: Mantenha a coerência narrativa temporal. Se a pessoa relatou um problema ou estado emocional antes, evolua esse tema perguntando sobre o desdobramento da situação.
+2. APROFUNDAMENTO SEM REPETIÇÃO: É expressamente proibido usar a mesma frase ou estrutura das perguntas anteriores. Em vez de repetir "Como está sua saúde mental hoje?", pergunte de um ângulo inédito, como "Quais estratégias você aplicou hoje para manter o foco diante daquela sobrecarga que conversamos?".
+3. VOCABULÁRIO DIVERSIFICADO: Varie as palavras-chave e a construção sintática para que cada pergunta pareça orgânica, inédita e altamente contextualizada.` : ''}
 
 Atenção: As respostas devem formar uma NARRATIVA TEMPORAL evolutiva (ex: cansaço aumentando ou humor melhorando ao longo dos dias).
 Para CADA interação, simule a conversa e IDENTIFIQUE qual eixo ESG da lista fornecida melhor se adequa ao tema discutido.
-NÃO REPITA PERGUNTAS dentro deste mês.
-SEJA CONCISO E DIRETO nos diálogos para não exceder o limite de texto.
-Retorne RIGOROSAMENTE um objeto JSON contendo uma única chave chamada "interacoes", que deve ser um array de objetos com:
-- "pergunta_ia": "Pergunta curta e INÉDITA"
+SEJA EXTREMAMENTE CONCISO E DIRETO nos diálogos. Limite os textos a no máximo 1 ou 2 frases curtas para não exceder o limite de tokens da API.
+Retorne RIGOROSAMENTE um objeto JSON contendo uma única chave chamada "interacoes", que deve ser array de objetos com:
+- "pergunta_ia": "Pergunta curta, empática e estruturalmente INÉDITA"
 - "resposta_colaborador": "Relato em 1 pessoa (conciso)"
 - "eixo_esg_identificado": "Exatamente o nome de um dos eixos válidos informados acima"
 - "sugestao_ia": "Ação prática e curta"
@@ -229,7 +235,9 @@ Retorne RIGOROSAMENTE um objeto JSON contendo uma única chave chamada "interaco
                         const iaRes = await axios.post('https://api.openai.com/v1/chat/completions', {
                             model: 'gpt-3.5-turbo',
                             messages: [{ role: 'user', content: promptMsg }],
-                            temperature: 0.8,
+                            temperature: 0.95,
+                            frequency_penalty: 0.5,
+                            max_tokens: 3500,
                             response_format: { type: "json_object" }
                         }, {
                             headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }

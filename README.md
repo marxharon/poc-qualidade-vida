@@ -1,99 +1,212 @@
-# POC - Plataforma Inteligente de Qualidade de Vida (ESG)
+# POC: Monitoramento Preditivo de Bem-Estar e Qualidade de Vida (Gêmeos Digitais e IA)
 
-Esta é a Prova de Conceito (POC) de uma plataforma inteligente para o monitoramento contínuo, anonimizado e não clínico da qualidade de vida dos empregados, baseada em Inteligência Artificial e Gêmeos Digitais para apoio ao pilar ESG corporativo.
+Este repositório contém a Prova de Conceito (POC) da arquitetura baseada em Gêmeos Digitais Dinâmicos e Inteligência Artificial Generativa para monitoramento contínuo dos eixos ESG em ambientes corporativos.
 
-## Estrutura do Projeto (Monorepo)
+## 📖 Documentação e Modelagem do Projeto
 
-- `/backend`: API Node.js com Drizzle ORM (Rotas, Controladores, Serviços, Modelos).
-- `/frontend`: Aplicação Web/Next.js do Painel do Gestor (Dashboard analítico).
-- `/mobile`: App React Native/Expo do Colaborador.
-- `/ia-service`: Serviço dedicado ao processamento de LLM e integração com a memória do Gêmeo Digital (ChromaDB).
-- `/infra`: Arquivos de configuração da infraestrutura (Docker compose para serviços conteinerizados).
+Para compreender a fundo a concepção teórica e estrutural desta Prova de Conceito, consulte os documentos fundacionais do projeto:
+- **[Modelo do Framework Atualizado (V2)](./modelo_atualizado.txt)**: Detalha as regras de negócio, o fluxo operacional do Gêmeo Digital Preditivo, a modelagem dinâmica dos agrupamentos organizacionais e a lista completa dos 10 eixos ESG de acompanhamento.
+- **[Plano de Atualização (Gêmeos Digitais V2)](./atualizacao_gemeo_digital.txt)**: Documenta a evolução do plano de implementação inicial, detalhando a refatoração para incorporar os conceitos de gêmeos digitais dinâmicos e preditivos utilizando o banco vetorial ChromaDB.
+- **[Plano de Implementação da POC](./plano.txt)**: Descreve a diretriz arquitetural (monorepo), a stack tecnológica escolhida e o roteiro passo a passo adotado pela equipe técnica para o desenvolvimento e modularização de cada ecossistema.
 
-## Pré-requisitos
+## � Pré-requisitos de Infraestrutura
 
-Para rodar este projeto localmente para o desenvolvimento da POC, você precisará das seguintes ferramentas instaladas:
+Antes de executar a aplicação ou os scripts de análise, certifique-se de ter os seguintes componentes instalados:
+- **Node.js** (v18+ recomendada)
+- **Python** (v3.9+ recomendada para os scripts de análise estatística)
+- **Docker Desktop** (Obrigatório para instanciar o banco vetorial ChromaDB localmente). [Baixe e instale através do site oficial](https://www.docker.com/products/docker-desktop/). Certifique-se de iniciar o aplicativo Docker após a instalação.
+- **PostgreSQL** (Rodando localmente para armazenamento relacional dos perfis gerados)
 
-1. **PostgreSQL**: Deve estar instalado **localmente** na sua máquina (não via Docker para este ambiente de desenvolvimento).
-   - Crie um banco de dados chamado `beqv_db`.
-2. **Docker e Docker Compose**: Necessário exclusivamente para rodar o banco de dados vetorial ChromaDB.
-3. **Node.js**: Versão 18 ou superior.
-4. **Conta na OpenAI**: Para obtenção de uma chave de API válida (`OPENAI_API_KEY`) para o LLM.
-5. **Expo Go (Opcional)**: App de celular para simular a aplicação móvel.
+> **Atenção:** Configure as variáveis de ambiente baseadas nos arquivos de exemplo (ex: `.env.example`). O `.gitignore` do repositório garante que chaves sensíveis de API (OpenAI) e credenciais de banco não sejam expostas.
 
-## Passos Iniciais para Instalação e Configuração
+## 🚀 Instalação e Configuração
 
-### 1. Clonar o repositório
+A arquitetura de persistência deste projeto adota um **modelo de dados misto (híbrido)**:
+- **Relacional (PostgreSQL):** Requer instalação local direta, responsável por armazenar dados estruturados, histórico e cadastros.
+- **Vetorial (ChromaDB):** Executado isoladamente em contêiner (Docker), responsável por armazenar os *embeddings* processados pela IA e garantir a memória semântica do Gêmeo Digital.
+
+Siga os passos abaixo para configurar e executar os ecossistemas do projeto localmente de forma modular.
+
+### 1. Clonar o Repositório e Configurar Variáveis de Ambiente
 ```bash
-git clone <URL_DO_SEU_REPOSITORIO>
-cd poc-qualidade-vida
+git clone <url-do-repositorio>
+cd POC1
+cp .env.example .env
 ```
+Edite o arquivo `.env` inserindo sua chave de API da OpenAI (`OPENAI_API_KEY`) e ajustando eventuais strings de conexão.
 
-### 2. Configurar Variáveis de Ambiente
-Crie um arquivo `.env` nas seguintes pastas com as configurações necessárias:
+### 2. Subir a Infraestrutura (Bancos de Dados)
+**PostgreSQL Relacional:**
+Certifique-se de que o PostgreSQL está instalado e rodando localmente (na porta padrão 5432). Crie um banco de dados vazio chamado `beqv_db`.
 
-**Exemplo básico de `.env` para o `/backend`:**
-```env
-DATABASE_URL=postgres://usuario_local:senha_local@localhost:5432/beqv_db
-PORT=3000
-```
-
-**Exemplo básico de `.env` para o `/ia-service`:**
-```env
-# URL da API do LLM local (ex: Ollama com Llama 3) ou serviço externo
-LLM_API_URL=http://localhost:11434/api/generate
-CHROMADB_URL=http://localhost:8000
-```
-
-### 3. Subir a Infraestrutura Vetorial (ChromaDB)
+**ChromaDB Vetorial (Docker):**
+Com o Docker Desktop aberto e em execução no seu computador, navegue até a pasta de infraestrutura e inicie o contêiner responsável pela memória da IA:
 ```bash
 cd infra
 docker-compose up -d
+cd ..
 ```
-*Nota: Certifique-se de que o PostgreSQL local também esteja rodando.*
 
-### 4. Configurar e Iniciar o Backend (API Principal)
-O backend é responsável pelas regras de negócios e por salvar as informações estruturadas no PostgreSQL. Abra um terminal e execute:
+### 3. Iniciar o Backend Principal
+Responsável por gerenciar as regras de negócio relacional e as rotas principais.
 ```bash
 cd backend
 npm install
-npm run db:generate   # Gera as migrações estruturais do banco
-npm run db:migrate    # Aplica as tabelas no banco de dados local
-npm run db:seed       # Popula a tabela com os 10 Eixos ESG
-npm run dev           # Inicia o servidor na porta 3000
+# Executar as migrações para criar as tabelas estruturais no banco local
+npx drizzle-kit push
+# Popular o banco relacional com os 10 Eixos ESG de avaliação (Seed inicial)
+npm run seed
+# Iniciar a API Node.js
+npm run dev
+cd ..
 ```
 
-### 5. Configurar e Iniciar o IA Service (Cérebro da Plataforma)
-Serviço dedicado à comunicação com a OpenAI e a memória no ChromaDB. Abra um novo terminal:
+### 4. Iniciar o Serviço de IA (`ia-service`)
+Microsserviço isolado dedicado para a comunicação com a API da OpenAI e acesso ao ChromaDB.
 ```bash
 cd ia-service
-npm install --legacy-peer-deps
-npm run dev           # Inicia o servidor na porta 3002
+npm install
+npm run dev
+cd ..
 ```
 
-### 6. Iniciar o Aplicativo Móvel (Colaborador)
-O app em React Native servirá como a interface do mentor. Abra um novo terminal:
+### 5. Iniciar o Dashboard Web (Acesso do Gestor)
+Plataforma em Next.js exibindo métricas analíticas e preditivas dos Gêmeos Organizacionais.
+```bash
+cd frontend
+npm install
+npm run dev
+# Acesse http://localhost:3000 no seu navegador web
+cd ..
+```
+
+### 6. Iniciar o Aplicativo Móvel (Acesso do Colaborador)
+O app do colaborador, construído em React Native com Expo, que sustenta as conversas fluídas.
 ```bash
 cd mobile
 npm install
 npm start
 ```
-*Dica: Após o script rodar, pressione a tecla `w` no terminal para simular o app diretamente no seu navegador web.*
+Ao surgir o QR Code no terminal, pressione a tecla `w` para simular direto no navegador, ou use a tecla `a`/`i` caso possua os emuladores Android Studio/Xcode abertos. Para usar em um celular físico, baixe o app gratuito **Expo Go** e leia o QR Code.
 
-### 7. Iniciar o Dashboard Web (Gestor)
-Painel de consumo dos dados anonimizados. Abra um novo terminal:
-```bash
-cd frontend
-npm install --legacy-peer-deps
-npm run dev
-```
+---
 
-## Fluxo de Teste da POC (End-to-End)
+## 📊 Roteiro de Replicação das Análises e Validação das Hipóteses
 
-Para avaliar a jornada completa planejada no artigo, siga este roteiro prático:
+Para comprovar o embasamento científico desta POC, o experimento foi dividido em duas macrotapas: a **geração do córtex de dados sintéticos** e a **esteira de testes analíticos automatizados** para validação das hipóteses (H1' a H5'). 
 
-1. **Criação do Gêmeo Digital Individual:** Acesse o app móvel, inicie o onboarding, preencha as 8 perguntas sobre seu perfil e aceite a política de privacidade (LGPD). A IA resumirá sua "essência" semanticamente e armazenará o vetor base no banco `ChromaDB`.
-2. **Mentor Conversacional Diário:** No chat do app, responda como você está se sentindo. A IA processará seu relato em linguagem natural (utilizando a OpenAI) atrelado a um Eixo ESG sorteado do dia, gerando uma sugestão corporativa e acolhedora, sem vieses médicos.
-3. **Aceitação do Usuário:** Dentro do chat, consulte o painel de Transparência da IA (botão "Ver Detalhes") e realize a avaliação geral da ferramenta (Estrelas) para testar a aderência do colaborador.
-4. **Motor de Agrupamento Anonimizado:** Pelo navegador, simule a rotina noturna (cronjob) do motor analítico acessando o endpoint oculto: `http://localhost:3000/api/admin/run-analyst`. O backend buscará os humores estruturados e categorizará os colaboradores em 10 grupos de riscos comportamentais.
-5. **Plataforma Analítica:** Acesse o dashboard web (`http://localhost:3001` ou a porta indicada no terminal do frontend). Observe os Gráficos de Radar (aderência real vs meta ESG) e o Gráfico de Linhas (tendência preditiva), provando que o Gestor pode realizar a tomada de decisões preventivas mantendo 100% da privacidade do trabalhador individual (Gêmeos Organizacionais).
+Todos os scripts analíticos encontram-se no diretório `/analises_estatisticas` (ou equivalente no repositório). Siga a ordem abaixo rigorosamente para reproduzir os resultados da POC.
+
+### Passo 1: Geração de Dados Sintéticos (Simulação de Monte Carlo)
+**Script:** `01_monte_carlo_generator.py`
+
+* **O que faz:** Para respeitar o preceito de *Safety-by-Design* (não testando IA preditiva em humanos reais logo de início), este script instancia dezenas de "Personas" (Gêmeos Digitais base). Ele simula o recorte temporal, fazendo a IA interagir diariamente com as entidades virtuais e populando tanto o banco relacional (PostgreSQL) quanto a memória vetorial (ChromaDB) com as interações e sentimentos gerados.
+* **Como usar:**
+  ```bash
+  python 01_monte_carlo_generator.py --personas 50 --dias 30
+  ```
+* **Saída Esperada:** Confirmação de inserção no banco de dados com a amostra de interações sintéticas.
+
+### Passo 2: Exportação e Preparação do Dataset
+**Script:** `export_data.py`
+
+* **O que faz:** Conecta-se ao banco de dados relacional (PostgreSQL) local e exporta as tabelas geradas na simulação para arquivos CSV. Esses arquivos serão consumidos pelas análises estatísticas subsequentes.
+* **Como usar:**
+  ```bash
+  python export_data.py
+  ```
+* **Saída Esperada:** Arquivos `.csv` (ex: `personas.csv`, `interacoes.csv`) gerados na pasta de validação.
+
+### Passo 3: Verificação de Integridade (Sanity Check)
+**Script:** `sanity_check.py`
+
+* **O que faz:** Executa uma checagem rápida para garantir que os dados exportados estão íntegros e consistentes antes de prosseguir com as validações (ex: valida a quantidade correta de personas extraídas e a ausência de valores nulos nos feedbacks).
+* **Como usar:**
+  ```bash
+  python sanity_check.py
+  ```
+* **Saída Esperada:** Mensagem de sucesso atestando que os dados estão prontos e confiáveis para análise.
+
+### Passo 4: Teste de Unicidade e Hiper-personalização (H1')
+**Script:** `02_h1_cosine_similarity.py`
+
+* **O que faz:** Combate o efeito *Survey Fatigue* aferindo se a IA gerou perguntas realmente únicas ou apenas repetiu padrões. O script calcula os pesos TF-IDF e avalia a similaridade do cosseno (*Cosine Similarity*) entre todos os *prompts* diários formulados.
+* **Como usar:**
+  ```bash
+  python 02_h1_cosine_similarity.py
+  ```
+* **Saída Esperada:** Um relatório indicando a taxa de unicidade semântica (espera-se `> 95%`), validando a H1'.
+
+### Passo 5: Teste de Independência Estatística e Coerência (H2 e H2')
+**Script:** `03_h2_chi_square_acf.py`
+
+* **O que faz:** Verifica se o LLM "alucinou" vieses. Aplica o Teste Qui-Quadrado ($\chi^2$) nas matrizes de contingência (cruzando eixos ESG e aceitabilidade das sugestões). Na sequência, calcula as Funções de Autocorrelação (ACF) para atestar que a evolução sentimental do Gêmeo foi orgânica ao longo do tempo.
+* **Como usar:**
+  ```bash
+  python 03_h2_chi_square_acf.py
+  ```
+* **Saída Esperada:** O valor do $\chi^2$ e do *p-valor*. Um *p-valor > 0.05* valida formalmente a ausência de *prompt bias* (independência) e valida as hipóteses H2 e H2'.
+
+### Passo 6: Predição Longitudinal (H3 e H3')
+**Script:** `04_h3_ols_regression.py`
+
+* **O que faz:** Executa uma regressão linear (Mínimos Quadrados Ordinários - OLS) sobre a consolidação temporal dos vetores dos Gêmeos. Este teste garante que os dados armazenados comportam algoritmos preditivos que posteriormente alimentarão o Dashboard do Gestor.
+* **Como usar:**
+  ```bash
+  python 04_h3_ols_regression.py
+  ```
+* **Saída Esperada:** O coeficiente de determinação (R²) apontando a previsibilidade e suporte para grafismos longitudinais de predição.
+
+### Passo 7: Mineração de Prevenção Ativa (H5')
+**Script:** `05_h5_risk_mining.py`
+
+* **O que faz:** Procura anomalias e sinistros (ex: Adesão $\le 75\%$). O script automatiza a mineração textológica nas interações formuladas pela IA nas zonas de risco semântico, buscando identificar se a IA sugeriu proativamente descanso, redirecionamento ou busca de apoio (palavras-chave: *pausa, meditar, limite*, etc).
+* **Como usar:**
+  ```bash
+  python 05_h5_risk_mining.py
+  ```
+* **Saída Esperada:** Um compilado numérico ou gráfico (semelhante ao gráfico de barras do artigo) mostrando a Contagem de Diagnósticos de Risco vs. Intervenções Proativas (espera-se uma eficácia elevada, $\sim 90\%$), validando o H5'.
+
+### Passo 8: Preparação da Amostra para Avaliação Qualitativa (H4')
+**Script:** `h4_prepare_sample.py`
+
+* **O que faz:** Seleciona aleatoriamente uma amostra de 4 personas e suas interações correspondentes, gerando uma planilha CSV (`h4_amostra_rh.csv`) formatada com colunas em branco, pronta para ser distribuída.
+* **Como usar:**
+  ```bash
+  python h4_prepare_sample.py
+  ```
+* **Saída Esperada:** Arquivo CSV com interações formatadas aguardando a avaliação humana.
+
+### Documento de Suporte: Guia de Avaliação de Especialistas
+**Documento:** `GUIA_AVALIACAO_ESPECIALISTAS.md`
+
+* **O que é:** Um manual de apoio fundamental que deve ser entregue junto à planilha do passo 8. Ele orienta os especialistas humanos de RH/ESG sobre os critérios de análise às cegas da IA, detalhando as justificativas de cada nota na escala Likert (1 a 5) para a dimensão de adequação da IA.
+
+### Passo 9: Validação Qualitativa de Especialistas (H4')
+**Script:** `h4_cluster_validation.py`
+
+* **O que faz:** Processa e compila as planilhas previamente preenchidas pela banca de especialistas humanos. Calcula a média da escala Likert (avaliação subjetiva) de todas as notas e determina a efetividade qualitativa da interpretação gerada pelo LLM.
+* **Datasets (Planilhas de Avaliação):**
+  - Especialista 1: `h4_amostra_rh_preenchida_especialista1.csv`
+  - Especialista 2: `h4_amostra_rh_preenchida_especialista2.csv`
+  - Especialista 3: `h4_amostra_rh_preenchida_especialista3.csv`
+  - Especialista 4: `h4_amostra_rh_preenchida_especialista4.csv`
+* **Como usar:**
+  ```bash
+  python h4_cluster_validation.py
+  ```
+* **Saída Esperada:** Média global de aprovação qualitativa (esperado $\ge 3.5$), atestando a validade técnica e confiabilidade do motor de IA na percepção humana e validando, em definitivo, a H4'.
+
+### ⚡ Orquestração: Execução Automatizada (Opcional)
+**Script:** `run_all_validations.py`
+
+* **O que faz:** Este script funciona como um orquestrador central de conveniência. Ele engatilha todos os scripts de exportação, validação de integridade e os testes estatísticos (H1' a H5') sequencialmente e de forma totalmente automatizada.
+* **Como usar:**
+  ```bash
+  python run_all_validations.py
+  ```
+* **Saída Esperada:** Um relatório contínuo impresso no terminal com a aprovação ou rejeição consolidadas das hipóteses e da simulação.
+
+---
+
+**Fim da execução.** Após rodar estes passos metodologicamente, você terá replicado e comprovado localmente todas as hipóteses apresentadas na Prova de Conceito do projeto.
