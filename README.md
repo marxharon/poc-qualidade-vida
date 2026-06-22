@@ -95,15 +95,16 @@ Ao surgir o QR Code no terminal, pressione a tecla `w` para simular direto no na
 
 Para comprovar o embasamento científico desta POC, o experimento foi dividido em duas macrotapas: a **geração do córtex de dados sintéticos** e a **esteira de testes analíticos automatizados** para validação das hipóteses (H1' a H5'). 
 
-Todos os scripts analíticos encontram-se no diretório `/analises_estatisticas` (ou equivalente no repositório). Siga a ordem abaixo rigorosamente para reproduzir os resultados da POC.
+Todos os scripts de simulação e análise encontram-se organizados no diretório `/analytics` e na subpasta `/analytics/hipoteses_validation`. Siga a ordem abaixo rigorosamente para reproduzir os resultados da POC.
 
 ### Passo 1: Geração de Dados Sintéticos (Simulação de Monte Carlo)
-**Script:** `01_monte_carlo_generator.py`
+**Script:** `monte_carlo.js` (localizado em `/analytics`)
 
 * **O que faz:** Para respeitar o preceito de *Safety-by-Design* (não testando IA preditiva em humanos reais logo de início), este script instancia dezenas de "Personas" (Gêmeos Digitais base). Ele simula o recorte temporal, fazendo a IA interagir diariamente com as entidades virtuais e populando tanto o banco relacional (PostgreSQL) quanto a memória vetorial (ChromaDB) com as interações e sentimentos gerados.
 * **Como usar:**
   ```bash
-  python 01_monte_carlo_generator.py --personas 50 --dias 30
+  cd analytics
+  node monte_carlo.js
   ```
 * **Saída Esperada:** Confirmação de inserção no banco de dados com a amostra de interações sintéticas.
 
@@ -128,42 +129,48 @@ Todos os scripts analíticos encontram-se no diretório `/analises_estatisticas`
 * **Saída Esperada:** Mensagem de sucesso atestando que os dados estão prontos e confiáveis para análise.
 
 ### Passo 4: Teste de Unicidade e Hiper-personalização (H1')
-**Script:** `02_h1_cosine_similarity.py`
+**Script:** `h1_uniqueness.py`
 
-* **O que faz:** Combate o efeito *Survey Fatigue* aferindo se a IA gerou perguntas realmente únicas ou apenas repetiu padrões. O script calcula os pesos TF-IDF e avalia a similaridade do cosseno (*Cosine Similarity*) entre todos os *prompts* diários formulados.
+* **O que faz:** Combate o efeito *Survey Fatigue* aferindo se a IA gerou perguntas realmente únicas ou apenas repetiu padrões. Valida se a IA gera abordagens dinâmicas e baseadas na memória semântica do Gêmeo Digital, avaliando a similaridade (TF-IDF/Cosseno) entre os *prompts*.
 * **Como usar:**
   ```bash
-  python 02_h1_cosine_similarity.py
+  python h1_uniqueness.py
   ```
 * **Saída Esperada:** Um relatório indicando a taxa de unicidade semântica (espera-se `> 95%`), validando a H1'.
 
 ### Passo 5: Teste de Independência Estatística e Coerência (H2 e H2')
-**Script:** `03_h2_chi_square_acf.py`
+**Scripts:** `h2_chi_square.py` e `h2_temporal_coherence.py`
 
-* **O que faz:** Verifica se o LLM "alucinou" vieses. Aplica o Teste Qui-Quadrado ($\chi^2$) nas matrizes de contingência (cruzando eixos ESG e aceitabilidade das sugestões). Na sequência, calcula as Funções de Autocorrelação (ACF) para atestar que a evolução sentimental do Gêmeo foi orgânica ao longo do tempo.
+* **O que fazem:** 
+  - `h2_chi_square.py` (H2): Demonstra dependência e viabilidade estatística atestando que os eixos ESG não enviesam sistematicamente os feedbacks, simulando uma amostra humana randômica.
+  - `h2_temporal_coherence.py` (H2'): Comprova que a evolução temporal dos sentimentos ao longo da simulação de Monte Carlo apresenta coerência narrativa realista sem inversões abruptas injustificadas.
 * **Como usar:**
   ```bash
-  python 03_h2_chi_square_acf.py
+  python h2_chi_square.py
+  python h2_temporal_coherence.py
   ```
 * **Saída Esperada:** O valor do $\chi^2$ e do *p-valor*. Um *p-valor > 0.05* valida formalmente a ausência de *prompt bias* (independência) e valida as hipóteses H2 e H2'.
 
-### Passo 6: Predição Longitudinal (H3 e H3')
-**Script:** `04_h3_ols_regression.py`
+### Passo 6: Predição Longitudinal e Qualidade de Texto (H3 e H3')
+**Scripts:** `h3_predictive_trend.py` e `h3_quality_text.py`
 
-* **O que faz:** Executa uma regressão linear (Mínimos Quadrados Ordinários - OLS) sobre a consolidação temporal dos vetores dos Gêmeos. Este teste garante que os dados armazenados comportam algoritmos preditivos que posteriormente alimentarão o Dashboard do Gestor.
+* **O que fazem:**
+  - `h3_predictive_trend.py` (H3): Valida a viabilidade de modelagem matemática (OLS) sobre a base temporal para viabilizar projeções preditivas futuras aos gestores.
+  - `h3_quality_text.py` (H3'): Avalia a proporção quantitativa de aceitação (Boas) e aplica mineração básica de texto para mensurar o acolhimento personalizado e nominativo.
 * **Como usar:**
   ```bash
-  python 04_h3_ols_regression.py
+  python h3_predictive_trend.py
+  python h3_quality_text.py
   ```
 * **Saída Esperada:** O coeficiente de determinação (R²) apontando a previsibilidade e suporte para grafismos longitudinais de predição.
 
-### Passo 7: Mineração de Prevenção Ativa (H5')
-**Script:** `05_h5_risk_mining.py`
+### Passo 7: Identificação Precoce de Risco (H5')
+**Script:** `h5_predictive_early.py`
 
-* **O que faz:** Procura anomalias e sinistros (ex: Adesão $\le 75\%$). O script automatiza a mineração textológica nas interações formuladas pela IA nas zonas de risco semântico, buscando identificar se a IA sugeriu proativamente descanso, redirecionamento ou busca de apoio (palavras-chave: *pausa, meditar, limite*, etc).
+* **O que faz:** Comprova semanticamente a capacidade da IA intervir de maneira acolhedora/preventiva quando detecta traços precoces de baixa adesão ao eixo ESG avaliado.
 * **Como usar:**
   ```bash
-  python 05_h5_risk_mining.py
+  python h5_predictive_early.py
   ```
 * **Saída Esperada:** Um compilado numérico ou gráfico (semelhante ao gráfico de barras do artigo) mostrando a Contagem de Diagnósticos de Risco vs. Intervenções Proativas (espera-se uma eficácia elevada, $\sim 90\%$), validando o H5'.
 
