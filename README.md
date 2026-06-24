@@ -204,6 +204,30 @@ Todos os scripts de simulação e análise encontram-se organizados no diretóri
   ```
 * **Saída Esperada:** Média global de aprovação qualitativa (esperado $\ge 3.5$), atestando a validade técnica e confiabilidade do motor de IA na percepção humana e validando, em definitivo, a H4'.
 
+### Passo 10: Análise Temática Qualitativa Profunda (H4') 
+**Script:**  `h4_populate_qualitative_matrix.py (localizado em /analytics/hipoteses_validation)`
+
+* O que faz: Para conferir rigor acadêmico internacional (Tier 1) à validação da H4, a validação vai além das médias quantitativas da escala Likert (Passo 9). Adotou-se o método de Análise Temática (Braun & Clarke) associada à Análise de Conteúdo (Bardin). Este script filtra os comentários textuais analíticos deixados pelos especialistas e prepara a base para a Codificação e Categorização emergente. 
+
+* Artefatos e Guias Metodológicos Utilizados (pasta /analytics):
+`matriz_analise_qualitativa_h4.csv`: A planilha principal de trabalho onde os pesquisadores registram a Codificação Aberta, as Categorias Temáticas e a Síntese de Triangulação de cada comentário.
+
+`GUIA_EXECUCAO_ANALISE_QUALITATIVA_H4.md`: Manual instrucional detalhado que define a esteira de processamento dos dados qualitativos e o preenchimento da matriz.
+
+`dicionario_codigos_h4.csv (Codebook)`: Artefato crítico para garantir a confiabilidade entre avaliadores (Inter-Coder Reliability). Padroniza a nomenclatura dos achados (ex: "Acerto de Persona", "Erro de Eixo", "Sugestão Redundante").
+
+`GUIA_CONSENSO_CODIGOS_H4.md`: Orientações para resolução de divergências analíticas e alinhamento dos pesquisadores para manutenção da Saturação Teórica. 
+
+* ** Como usar: **
+  ```bash
+  python analytics/hipoteses_validation/h4_populate_qualitative_matrix.py
+  ```
+
+Após a execução, o pesquisador deve abrir a matriz gerada e seguir as instruções dos Guias associados. 
+
+* ** Saída Esperada:** O arquivo `matriz_analise_qualitativa_h4.csv` pré-preenchido com os dados brutos e pronto para o trabalho analítico humano de descoberta das reais capacidades limitantes e positivas da IA.
+
+
 ### ⚡ Orquestração: Execução Automatizada (Opcional)
 **Script:** `run_all_validations.py`
 
