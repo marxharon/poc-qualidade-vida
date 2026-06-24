@@ -129,15 +129,17 @@ Hipótese Corroborada / Objetivo: Valida através de especialistas humanos a coe
 
 >> SAÍDA DO TERMINAL:
 === RESULTADO H4' (Avaliação Qualitativa) ===
-🔍 Foram encontradas 6 planilha(s) de especialista(s).
+🔍 Foram encontradas 9 planilha(s) de especialista(s).
 
-Resumo da Agregação (Total de 162 avaliações cruzadas):
-Média Avaliação da Pergunta IA: 4.23/5.0 (Kappa: 0.05)
-Média Avaliação do Eixo ESG: 3.94/5.0 (Kappa: 0.18)
-Média Avaliação das Sugestões: 3.76/5.0 (Kappa: 0.00)
+Resumo da Agregação (Total de 243 avaliações cruzadas):
+Média Avaliação da Pergunta IA: 4.27/5.0 (Concordância: 76.7% | Kappa Ajustado: -0.01 -> Sem concordância)
+Média Avaliação do Eixo ESG: 4.05/5.0 (Concordância: 70.3% | Kappa Ajustado: 0.34 -> Razoável)
+Média Avaliação das Sugestões: 3.84/5.0 (Concordância: 58.1% | Kappa Ajustado: 0.03 -> Leve)
 ----------------------------------------
-Média Geral de Aprovação Consolidada: 3.98/5.0
-Critério de Média: ≥3.5 | Concordância Kappa Média: 0.08 | Passou: ✅
+Média Geral de Aprovação Consolidada: 4.05/5.0
+Critério de Média: ≥3.5 | Concordância Kappa Média: 0.12 (Leve) | Passou: ✅
+
+* NOTA: O cálculo de 'Concordância' e 'Kappa Ajustado' agrupa as notas Likert em Positivo (4 e 5), Neutro (3) e Negativo (1 e 2). Isso evita que uma diferença sutil de intensidade (ex: um avaliador dar 4 e outro 5) rebaixe indevidamente o índice de concordância.
 
 ✅ Arquivo de auditoria 'h4_resultados_consolidados.csv' salvo com sucesso com os detalhes de todos os especialistas.
 
