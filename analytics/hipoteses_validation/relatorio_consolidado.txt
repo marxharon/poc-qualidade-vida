@@ -129,15 +129,15 @@ Hipótese Corroborada / Objetivo: Valida através de especialistas humanos a coe
 
 >> SAÍDA DO TERMINAL:
 === RESULTADO H4' (Avaliação Qualitativa) ===
-🔍 Foram encontradas 4 planilha(s) de especialista(s).
+🔍 Foram encontradas 6 planilha(s) de especialista(s).
 
-Resumo da Agregação (Total de 108 avaliações cruzadas):
-Média Avaliação da Pergunta IA: 3.99/5.0 (Kappa: -0.09)
-Média Avaliação do Eixo ESG: 3.85/5.0 (Kappa: 0.01)
-Média Avaliação das Sugestões: 3.63/5.0 (Kappa: -0.07)
+Resumo da Agregação (Total de 162 avaliações cruzadas):
+Média Avaliação da Pergunta IA: 4.23/5.0 (Kappa: 0.05)
+Média Avaliação do Eixo ESG: 3.94/5.0 (Kappa: 0.18)
+Média Avaliação das Sugestões: 3.76/5.0 (Kappa: 0.00)
 ----------------------------------------
-Média Geral de Aprovação Consolidada: 3.82/5.0
-Critério de Média: ≥3.5 | Concordância Kappa Média: -0.05 | Passou: ✅
+Média Geral de Aprovação Consolidada: 3.98/5.0
+Critério de Média: ≥3.5 | Concordância Kappa Média: 0.08 | Passou: ✅
 
 ✅ Arquivo de auditoria 'h4_resultados_consolidados.csv' salvo com sucesso com os detalhes de todos os especialistas.
 
