@@ -12,13 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 // Permite acesso do seu frontend publicado e do app local (Configurado ANTES das rotas)
 app.use(cors({
-  origin: [
-    'http://localhost:3001', // Frontend local
-    'http://127.0.0.1:3001', 
-    'https://beqv-dashboard.onrender.com', // Seu frontend no Render
-    'http://localhost:8081', // Expo Web (Navegador)
-    'http://127.0.0.1:8081'
-  ],
+  origin: '*', // Libera o acesso para qualquer porta dinâmica ou IP local da POC
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 app.use(express.json());

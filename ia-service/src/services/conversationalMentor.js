@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { initChromaCollections } from '../config/chromaClient.js';
+import { routeIntention } from '../skills/routerIntentionSkill/index.js';
+import { empathyAndExtraction } from '../skills/empathyAndExtractionSkill/index.js';
 import 'dotenv/config'; // Garante que a chave da OpenAI seja lida corretamente
 
 // Recuperador Oficial: Garante que os Dados Oficiais do Gêmeo nunca sejam perdidos por falhas no Express/Rota.
@@ -7,7 +9,9 @@ const fetchPersonaFallback = async (safeId) => {
     if (!safeId || isNaN(Number(safeId))) return null;
     try {
         const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:3000/api';
-        const { data } = await axios.get(`${backendUrl}/personas`);
+        const { data } = await axios.get(`${backendUrl}/personas`, {
+            headers: { 'Connection': 'close' }
+        });
         return data.personas?.find(p => p.id_persona === Number(safeId)) || null;
     } catch (e) {
         return null;
@@ -15,12 +19,13 @@ const fetchPersonaFallback = async (safeId) => {
 };
 
 export const generatePersonalizedQuestion = async (id_persona_arg, fallback_arg) => {
+    try {
     let safeId = id_persona_arg;
     let personaFallback = fallback_arg;
 
     if (id_persona_arg && typeof id_persona_arg === 'object') {
-        const source = id_persona_arg.body || id_persona_arg;
-        safeId = source.id_persona;
+        const source = id_persona_arg.body || id_persona_arg.query || id_persona_arg;
+        safeId = source.id_persona || source.id;
         personaFallback = source.personaFallback;
     }
 
@@ -67,8 +72,8 @@ export const generatePersonalizedQuestion = async (id_persona_arg, fallback_arg)
     }
 
     const instrucaoContexto = isPrimeiraInteracao
-        ? `Esta é a sua PRIMEIRA interação com este colaborador. Formule a pergunta inicial de hoje baseando-se EXCLUSIVAMENTE nas características do Perfil dele, para engajá-lo a falar sobre o seu dia.`
-        : `Última Memória da conversa anterior: "${memoriaReal}"\nCruze o Perfil do Colaborador com esta última memória e crie 1 pergunta objetiva de acompanhamento para hoje, criando um gancho amigável com o relato anterior.`;
+        ? `Esta é a sua PRIMEIRA interação com este colaborador. Faça uma saudação inicial amigável e formule a pergunta inicial de hoje baseando-se EXCLUSIVAMENTE nas características do Perfil dele, para engajá-lo a falar sobre o seu dia.`
+        : `Última Memória da conversa anterior: "${memoriaReal}"\nFaça uma saudação inicial amigável. Depois, inicie a conversa fazendo uma referência clara à última troca de mensagens (especialmente à última resposta dele contida na Última Memória) para identificar o contexto narrativo que ele vinha conversando, garantindo que a conversa continue na narrativa histórica da interação. Por fim, faça uma indagação dentro desse contexto.`;
 
     const promptPrompt = `
     Você é um mentor corporativo empático de qualidade de vida (não-clínico), especialista em ESG.
@@ -76,8 +81,8 @@ export const generatePersonalizedQuestion = async (id_persona_arg, fallback_arg)
     ${instrucaoContexto}
     
     Tarefa:
-    - Elabore a pergunta de forma fluida, amigável e direta para ele (como em um bate-papo).
-    - Crie 4 opções curtas de respostas (como botões rápidos) que ele poderia dar, atreladas à pergunta.
+    1. Faça a saudação e a indagação de forma fluida, amigável e direta para ele (como em um bate-papo).
+    2. Crie 3 ou 4 opções curtas de respostas (como botões rápidos) que ele poderia dar, atreladas à sua pergunta e ao contexto da conversa.
     Responda RIGOROSAMENTE em formato JSON estrito:
     {"question": "...", "options": ["...", "...", "...", "..."]}
     `;
@@ -96,10 +101,15 @@ export const generatePersonalizedQuestion = async (id_persona_arg, fallback_arg)
             temperature: 0.7
         }, { 
             headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
-            timeout: 10000 // Limite de tempo de 10s
+            timeout: 30000 // Limite de tempo aumentado para 30s
         });
 
-        return JSON.parse(response.data.choices[0].message.content);
+        const content = response.data.choices[0]?.message?.content;
+        if (!content) throw new Error("Conteúdo vazio da OpenAI");
+        
+        const parsed = JSON.parse(content);
+        if (!parsed.question || !Array.isArray(parsed.options)) throw new Error("JSON fora do padrão");
+        return parsed;
     } catch (error) {
         console.error(`\n❌ [IA Mentor] FALHA AO COMUNICAR COM A OPENAI:`, error.response?.data || error.message);
         console.log(`[IA Mentor] Fallback ativado. Retornando pergunta hiper-personalizada via template comportamental.`);
@@ -112,19 +122,27 @@ export const generatePersonalizedQuestion = async (id_persona_arg, fallback_arg)
             options: ["Tranquilo e focado", "Um pouco cansado", "Precisando de uma pausa", "Motivado!"]
         };
     }
+    } catch (criticalError) {
+        console.error(`[IA Mentor] Erro crítico em generatePersonalizedQuestion:`, criticalError);
+        return {
+            question: "Olá! Tive uma leve instabilidade, mas estou aqui. Como você está se sentindo hoje?",
+            options: ["Bem", "Cansado", "Sobrecarregado", "Ótimo"]
+        };
+    }
 };
 
 export const processChatInteraction = async (id_persona_arg, eixoESGSelecionado_arg, respostaColaboradorNatural_arg, fallback_arg) => {
+    try {
     let safeId = id_persona_arg;
     let safeEixo = eixoESGSelecionado_arg;
     let safeResposta = respostaColaboradorNatural_arg;
     let personaFallback = fallback_arg;
 
     if (id_persona_arg && typeof id_persona_arg === 'object') {
-        const source = id_persona_arg.body || id_persona_arg;
+        const source = id_persona_arg.body || id_persona_arg.query || id_persona_arg;
         safeId = source.id_persona;
         safeEixo = source.eixoESGSelecionado || eixoESGSelecionado_arg;
-        safeResposta = source.respostaColaboradorNatural || respostaColaboradorNatural_arg;
+        safeResposta = source.respostaColaboradorNatural || source.relato || respostaColaboradorNatural_arg;
         personaFallback = source.personaFallback;
     }
 
@@ -162,65 +180,140 @@ export const processChatInteraction = async (id_persona_arg, eixoESGSelecionado_
                 if (docsWithTimestamps.length > 0) {
                     docsWithTimestamps.sort((a, b) => a.timestamp - b.timestamp);
                     const ultimosRelatos = docsWithTimestamps.slice(-3).map(item => item.doc);
-                    memoriaAcumulada = ultimosRelatos.join(" | ");
+                    memoriaAcumulada = ultimosRelatos.join("\n---\n");
                 }
             }
-
-            const timestamp = Date.now();
-            await collections.interacoesCollection.upsert({ 
-                ids: [`${safeId}-${timestamp}`], 
-                documents: [safeResposta],
-                metadatas: [{ id_persona: Number(safeId), eixo: safeEixo || "A classificar", timestamp }]
-            });
-            console.log(`[IA Mentor] Nova memória vetorial persistida com sucesso!`);
         }
     } catch (error) {
-        console.error(`[IA Mentor] Falha ao persistir a memória no ChromaDB:`, error.message);
+        console.error(`[IA Mentor] Falha ao consultar a memória no ChromaDB:`, error.message);
     }
-
-    const promptPrompt = `
-    Você é um mentor corporativo empático e não-clínico, especialista em ESG e qualidade de vida.
-    Perfil do Colaborador: "${perfilReal}"
-    Contexto da conversa até agora: "${memoriaAcumulada}"
-    O que ele acabou de dizer: "${respostaColaboradorNatural}"
-    
-    Tarefa: 
-    1. Crie uma sugestão (sugestao_final): Formule uma possibilidade de ação de melhoria focada na pessoa, de acordo com o histórico de interações da conversa atual e com o perfil do colaborador. A sugestão deve ser prática e iniciar com um verbo no infinitivo (ex: 'fazer um alongamento').
-    2. Continue o bate-papo (resposta_chat): Acolha o relato atual de forma natural e empática, e EM SEGUIDA, faça uma NOVA PERGUNTA para aprofundar a conversa.
-    3. Identifique o Eixo (eixo_identificado): Escolha o tema de ESG que melhor se relaciona com o relato atual (ex: Saúde Física, Saúde Mental, Clima e Engajamento, Equilíbrio Vida/Trabalho, etc).
-    4. Estime a Adesão (percentual_adesao): Um número inteiro de 0 a 100 indicando o nível de bem-estar ou saúde demonstrado neste relato.
-    
-    Responda EXATAMENTE neste formato JSON estrito:
-    {
-        "resposta_chat": "Seu acolhimento e a nova pergunta do bate-papo",
-        "eixo_identificado": "Nome do eixo ESG",
-        "sugestao_final": "Ação prática iniciando com verbo no infinitivo",
-        "percentual_adesao": 85
-    }
-    `;
 
     try {
         if (!process.env.OPENAI_API_KEY) throw new Error("Fallback preditivo ativo.");
         
-        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-            model: "gpt-3.5-turbo", // Trocado para 3.5 para evitar erro de permissão de cota
-            messages: [{ role: "system", content: promptPrompt }],
-            response_format: { type: "json_object" },
-            temperature: 0.8
-        }, { 
-            headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
-            timeout: 10000 
-        });
+        let isEncerramento = false;
+        let isClinico = false;
+        try {
+            // Passo 1: Avaliar intenção do colaborador
+            const intencaoAnalysis = await routeIntention({ mensagem: safeResposta });
+            if (intencaoAnalysis) {
+                if (intencaoAnalysis.classificacao === 'ENCERRAMENTO' || intencaoAnalysis.intencao === 'ENCERRAMENTO') {
+                    isEncerramento = true;
+                } else if (intencaoAnalysis.classificacao === 'CLINICO' || intencaoAnalysis.intencao === 'CLINICO') {
+                    isClinico = true;
+                }
+            }
+        } catch (err) {
+            console.warn(`[IA Mentor] Falha no routeIntention. Tratando como continuidade por padrão:`, err.message);
+        }
 
-        return JSON.parse(response.data.choices[0].message.content);
+        if (isClinico) {
+            return {
+                resposta_chat: "Entendo que essa situação exija um cuidado especial. Recomendo fortemente que você procure o apoio de um profissional de saúde ou o RH para um acompanhamento adequado.",
+                mensagens_app: ["Entendo que essa situação exija um cuidado especial. Recomendo fortemente que você procure o apoio de um profissional de saúde ou o RH para um acompanhamento adequado."],
+                eixo_identificado: "Saúde mental e emocional",
+                sugestao_final: "buscar apoio profissional/médico",
+                percentual_adesao: 50,
+                solicitar_avaliacao: true,
+                salvar_interacao: false // <-- FLAG: Não persiste estado de controle da IA
+            };
+        }
+
+        if (isEncerramento) {
+            return {
+                resposta_chat: "Agradeço por compartilhar comigo hoje. Foi ótimo conversar com você!",
+                mensagens_app: ["Agradeço por compartilhar comigo hoje. Foi ótimo conversar com você!"],
+                eixo_identificado: safeEixo || "Acompanhamento Geral",
+                sugestao_final: "encerrar a conversa",
+                percentual_adesao: 100,
+                solicitar_avaliacao: true,
+                salvar_interacao: false // <-- FLAG: Não persiste estado de controle da IA
+            };
+        }
+
+        // Passo 2: Extrair a empatia e metadados usando o esquema estrito da skill
+        const contextoExtract = {
+            nome_preferido: personaFallback?.nome_preferido || "Colaborador",
+            personalidade: personaFallback?.personalidade || "Indefinida",
+            gostos_desgostos: `Gostos: ${personaFallback?.gostos || 'N/A'}. Desgostos: ${personaFallback?.desgostos || 'N/A'}`,
+            mensagem: safeResposta
+        };
+
+        const parsedResponse = await empathyAndExtraction(contextoExtract);
+
+        const conselhoLimpo = parsedResponse.resposta_chat || "";
+
+        try {
+            const collections = await initChromaCollections();
+            if (collections?.interacoesCollection) {
+                const timestamp = Date.now();
+                // Persiste APENAS o conselho limpo na memória
+                const interacaoCompleta = `Colaborador: "${safeResposta}" | Mentor IA: "${conselhoLimpo}" (Sugestão: ${parsedResponse.sugestao_final}) [Modo de Escuta: ${parsedResponse.modo_escuta}]`;
+                await collections.interacoesCollection.upsert({ 
+                    ids: [`${safeId}-${timestamp}`], 
+                    documents: [interacaoCompleta],
+                    metadatas: [{ id_persona: Number(safeId), eixo: parsedResponse.eixo_identificado || safeEixo || "A classificar", timestamp }]
+                });
+                console.log(`[IA Mentor] Nova memória vetorial persistida com sucesso!`);
+            }
+        } catch (error) {
+            console.error(`[IA Mentor] Falha ao persistir a memória no ChromaDB:`, error.message);
+        }
+
+        // Define a fluidez do chat baseada no modo de escuta retornado pelo GPT
+        const mensagensApp = [conselhoLimpo];
+        if (parsedResponse.sugestao_final) {
+            mensagensApp.push(parsedResponse.sugestao_final);
+        }
+        
+        // Validação defensiva ampliada: Avalia as 3 flags possíveis do LLM indicando desfecho
+        const isEsgotado = parsedResponse.topico_esgotado === true || 
+                           String(parsedResponse.modo_escuta).toUpperCase() === 'DIRECIONAMENTO' ||
+                           parsedResponse.solicitar_avaliacao === true;
+
+        if (isEsgotado) {
+            mensagensApp.push("Há algo mais que posso fazer por você?");
+        } else {
+            // Se não esgotou (Escuta Ativa), a IA não gerou perguntas. Injetamos o estímulo para a conversa não morrer.
+            mensagensApp.push("Gostaria de compartilhar mais algum detalhe sobre isso?");
+        }
+        
+        parsedResponse.resposta_chat = conselhoLimpo;
+        parsedResponse.mensagens_app = mensagensApp;
+        
+        // Trava de segurança: impede que a IA encerre o chat acidentalmente na etapa de sugestão
+        parsedResponse.solicitar_avaliacao = false;
+
+        return parsedResponse;
     } catch (error) {
         console.error(`\n❌ [IA Mentor] FALHA AO COMUNICAR COM A OPENAI:`, error.response?.data || error.message);
         console.log(`[IA Mentor] Fallback ativado na interpretação da resposta. Retornando sugestão mockada.`);
         return { 
-            resposta_chat: "Entendo bem como é se sentir assim. E como você acha que isso vai impactar o resto do seu dia hoje?",
+            resposta_chat: "Entendo perfeitamente sua situação e reconheço o seu esforço diário.",
+            mensagens_app: [
+                "Entendo perfeitamente sua situação e reconheço o seu esforço diário.",
+                "Sugeriria fazer uma pausa estratégica para respirar quando precisar.",
+                "Há algo mais que posso fazer por você?"
+            ],
             eixo_identificado: "Saúde mental e emocional",
             sugestao_final: "fazer uma pausa estratégica para respirar quando precisar",
-            percentual_adesao: 70
+            percentual_adesao: 70,
+            solicitar_avaliacao: false // Mantém a caixa de texto aberta para o usuário responder
+        };
+    }
+    } catch (criticalError) {
+        console.error(`[IA Mentor] Erro crítico em processChatInteraction:`, criticalError);
+        return { 
+            resposta_chat: "Compreendo a situação.",
+            mensagens_app: [
+                "Compreendo a situação.",
+                "Recomendo buscar um momento para refletir sobre como contornar isso com tranquilidade.",
+                "Há algo mais que posso fazer por você?"
+            ],
+            eixo_identificado: "A classificar",
+            sugestao_final: "encerrar a conversa",
+            percentual_adesao: 50,
+            solicitar_avaliacao: false // Mantém a caixa de texto aberta para o usuário responder
         };
     }
 };
@@ -296,7 +389,10 @@ export const analyzeSuggestionReason = async (id_persona_arg, sugestao_arg, fall
             messages: [{ role: "system", content: promptPrompt }],
             response_format: { type: "json_object" },
             temperature: 0.7
-        }, { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` } });
+        }, { 
+            headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
+            timeout: 30000 
+        });
 
         return JSON.parse(response.data.choices[0].message.content);
     } catch (error) {
@@ -376,7 +472,10 @@ export const generatePerceptionAndProfile = async (id_persona_arg, fallback_arg)
             messages: [{ role: "system", content: promptPrompt }],
             response_format: { type: "json_object" },
             temperature: 0.7
-        }, { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` } });
+        }, { 
+            headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
+            timeout: 30000 
+        });
 
         return JSON.parse(response.data.choices[0].message.content);
     } catch (error) {

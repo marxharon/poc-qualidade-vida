@@ -27,8 +27,17 @@ export const getDailyQuestion = async (req, res) => {
         const checkPersonaFallback = await db.select().from(personas).where(eq(personas.id_persona, id_persona)).limit(1);
         const personaFallback = checkPersonaFallback.length > 0 ? checkPersonaFallback[0] : null;
 
-        // Envia para o serviço de IA consultar a essência vetorial no ChromaDB e formular uma pergunta hiper-personalizada
-        const iaResponse = await axios.post(`${iaServiceUrl}/daily-question`, { id_persona, personaFallback });
+        let iaResponse;
+        try {
+            // Envia para o serviço de IA consultar a essência vetorial no ChromaDB e formular uma pergunta hiper-personalizada
+            iaResponse = await axios.post(`${iaServiceUrl}/daily-question`, { id_persona, personaFallback }, { 
+                timeout: 35000,
+                headers: { 'Connection': 'close' } 
+            });
+        } catch (iaError) {
+            console.error("Aviso: Falha de conexão ou Timeout com o IA-Service em getDailyQuestion.", iaError.message);
+            iaResponse = { data: { question: "Como está a sua energia hoje?", options: ["Tranquilo", "Um pouco pesado", "Estou sobrecarregado", "Entediado"] } };
+        }
 
         res.status(200).json({ 
             question: iaResponse.data.question || "Como está a sua energia hoje?", 
@@ -75,51 +84,67 @@ export const respondToChat = async (req, res) => {
                 eixoESGSelecionado: "A classificar",
                 respostaColaboradorNatural: relato,
                 personaFallback
-            }, { timeout: 12000 }); // Limite de 12s para evitar Network Error do App
+            }, { 
+                timeout: 35000, // Aumentado para 35s para aguardar a IA processar a resposta
+                headers: { 'Connection': 'close' } 
+            });
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service. Ativando Airbag de Chat.", iaError.message);
-            iaResponse = { data: { resposta_chat: "Tive um pequeno lapso de conexão aqui. Você poderia me contar um pouco mais sobre isso?", sugestao_final: "fazer uma pausa e respirar fundo", eixo_identificado: "Saúde mental e emocional", percentual_adesao: 70 } };
+            iaResponse = { data: { 
+                resposta_chat: "Tive um pequeno lapso de conexão aqui.", 
+                mensagens_app: ["Tive um pequeno lapso de conexão aqui.", "Gostaria de sugerir que tentemos fazer uma pausa e respirar fundo para retomar o foco.", "Você poderia me contar um pouco mais sobre isso?"],
+                sugestao_final: "fazer uma pausa e respirar fundo", 
+                eixo_identificado: "Saúde mental e emocional", 
+                percentual_adesao: 70,
+                solicitar_avaliacao: false
+            } };
         }
 
-        // Flexibiliza a leitura dependendo de como o ia-service devolve o JSON
-        let resposta_chat = String(iaResponse.data?.resposta_chat || iaResponse.data?.sugestao_acao || "Pode me falar mais sobre isso?");
-        const sugestao_acao = String(iaResponse.data?.sugestao_final || iaResponse.data?.sugestao_acao || "fazer uma pausa estratégica e respirar fundo");
-        const eixoIdentificado = String(iaResponse.data?.eixo_identificado || "Saúde mental e emocional");
-        const percentual_adesao = iaResponse.data?.percentual_adesao !== undefined ? Number(iaResponse.data.percentual_adesao) : 75;
-
-        if (!resposta_chat.toLowerCase().includes("que tal")) {
-            const sugestaoFormatada = sugestao_acao.charAt(0).toLowerCase() + sugestao_acao.slice(1);
-            resposta_chat = `${resposta_chat.trim()} Que tal ${sugestaoFormatada.replace(/\.$/, '')}?`;
-        }
+        const resposta_chat = String(iaResponse.data?.resposta_chat || "Acolhimento padrão");
+        const mensagens_app = iaResponse.data?.mensagens_app || [resposta_chat];
+        const sugestao_final = iaResponse.data?.sugestao_final || "";
+        const eixo_identificado = String(iaResponse.data?.eixo_identificado || "A classificar");
+        const percentual_adesao = iaResponse.data?.percentual_adesao !== undefined ? Number(iaResponse.data.percentual_adesao) : 70;
+        const solicitar_avaliacao = Boolean(iaResponse.data?.solicitar_avaliacao);
 
         const eixos = await db.select().from(eixosESG);
         let id_eixo = 2; // Default
         if (eixos.length > 0) {
-            const keyword = eixoIdentificado.split(' ')[0].toLowerCase();
+            const keyword = eixo_identificado.split(' ')[0].toLowerCase();
             const matchedEixo = eixos.find(e => e.nome.toLowerCase().includes(keyword));
             if (matchedEixo) id_eixo = matchedEixo.id_eixo;
             else id_eixo = eixos[0].id_eixo;
         }
 
         // SALVAR NA TABELA: É isso que fará o Histórico da Persona carregar os dados!
-        try {
-            await db.insert(interacoes).values({
-                id_persona,
-                id_eixo,
-                pergunta_ia: pergunta_ia || "Pergunta do dia",
-                resposta_colaborador: relato,
-                sugestao_ia: sugestao_acao,
-                percentual_adesao
-            });
-        } catch (dbError) {
-            console.error("Aviso: Falha ao salvar no banco relacional (possível falta de seed nos eixos).", dbError.message);
+        let id_interacao = null;
+        // Só persiste se a IA considerar que é um relato válido (ignora encerramento/clínico)
+        if (iaResponse.data?.salvar_interacao !== false) {
+            try {
+                const [novaInteracao] = await db.insert(interacoes).values({
+                    id_persona,
+                    id_eixo,
+                    pergunta_ia: pergunta_ia || "Pergunta do dia",
+                    resposta_colaborador: relato,
+                    sugestao_ia: sugestao_final,
+                    percentual_adesao
+                }).returning({ id_interacao: interacoes.id_interacao });
+                if (novaInteracao) {
+                    id_interacao = novaInteracao.id_interacao;
+                }
+            } catch (dbError) {
+                console.error("Aviso: Falha ao salvar no banco relacional (possível falta de seed nos eixos).", dbError.message);
+            }
         }
 
         res.status(200).json({ 
-            sugestao_acao, 
+            id_interacao,
             resposta_chat,
-            eixo: eixoIdentificado, 
-            percentual_adesao 
+            mensagens_app,
+            eixo_identificado, 
+            sugestao_final,
+            percentual_adesao,
+            solicitar_avaliacao
         });
     } catch (error) {
         console.error("Erro na integração com IA:", error.message, error.response?.data);
@@ -133,20 +158,27 @@ export const respondToChat = async (req, res) => {
 
 export const submitFeedback = async (req, res) => {
     try {
-        const { feedback, id_persona } = req.body;
-        const parsedId = id_persona ? parseInt(id_persona) : null;
-        let lastInteracao;
+        const { feedback, id_persona, id_interacao } = req.body;
         
-        if (parsedId) {
-            lastInteracao = await db.select().from(interacoes).where(eq(interacoes.id_persona, parsedId)).orderBy(desc(interacoes.id_interacao)).limit(1);
-        } else {
-            lastInteracao = await db.select().from(interacoes).orderBy(desc(interacoes.id_interacao)).limit(1);
-        }
-
-        if (lastInteracao.length > 0) {
+        if (id_interacao) {
+            // Uso preciso e cirúrgico do ID da iteração gerada
             await db.update(interacoes)
                 .set({ feedback_sugestao: feedback })
-                .where(eq(interacoes.id_interacao, lastInteracao[0].id_interacao));
+                .where(eq(interacoes.id_interacao, id_interacao));
+        } else {
+            // Fallback legado caso o id_interacao não seja providenciado
+            const parsedId = id_persona ? parseInt(id_persona) : null;
+            let lastInteracao;
+            if (parsedId) {
+                lastInteracao = await db.select().from(interacoes).where(eq(interacoes.id_persona, parsedId)).orderBy(desc(interacoes.id_interacao)).limit(1);
+            } else {
+                lastInteracao = await db.select().from(interacoes).orderBy(desc(interacoes.id_interacao)).limit(1);
+            }
+            if (lastInteracao.length > 0) {
+                await db.update(interacoes)
+                    .set({ feedback_sugestao: feedback })
+                    .where(eq(interacoes.id_interacao, lastInteracao[0].id_interacao));
+            }
         }
         res.status(200).json({ success: true });
     } catch (e) {
@@ -166,8 +198,19 @@ export const analyzeSuggestion = async (req, res) => {
         const personaFallback = checkPersonaFallback.length > 0 ? checkPersonaFallback[0] : null;
         
         const iaServiceUrl = process.env.IA_SERVICE_URL || 'http://127.0.0.1:3002/api';
-        const iaResponse = await axios.post(`${iaServiceUrl}/analyze-suggestion`, { id_persona, sugestao, personaFallback });
-        res.status(200).json({ motivo: iaResponse.data.motivo });
+        
+        let iaResponse;
+        try {
+            iaResponse = await axios.post(`${iaServiceUrl}/analyze-suggestion`, { id_persona, sugestao, personaFallback }, { 
+                timeout: 35000,
+                headers: { 'Connection': 'close' } 
+            });
+        } catch (iaError) {
+            console.error("Aviso: Falha de conexão ou Timeout com o IA-Service em analyzeSuggestion.", iaError.message);
+            iaResponse = { data: { motivo: "A análise preditiva indicou uma alteração nos seus padrões vetoriais recentes em relação ao seu perfil base. A sugestão visa realinhar seu Gêmeo Digital à zona de saúde ocupacional." } };
+        }
+        
+        res.status(200).json({ motivo: iaResponse.data?.motivo });
     } catch (error) {
         console.error("Erro na Análise de Sugestão:", error.message);
         res.status(500).json({ error: "Erro ao consultar a IA." });
@@ -190,8 +233,11 @@ export const getPerception = async (req, res) => {
         
         let iaResponse;
         try {
-            // Tenta obter a percepção da IA, mas aborta se demorar mais que 15 segundos para evitar ECONNRESET
-            iaResponse = await axios.post(`${iaServiceUrl}/perception`, { id_persona, personaFallback }, { timeout: 15000 });
+            // Tenta obter a percepção da IA com tempo estendido
+            iaResponse = await axios.post(`${iaServiceUrl}/perception`, { id_persona, personaFallback }, { 
+                timeout: 35000,
+                headers: { 'Connection': 'close' } 
+            });
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service em getPerception.", iaError.message);
             iaResponse = { 

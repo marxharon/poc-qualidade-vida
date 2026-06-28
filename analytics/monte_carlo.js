@@ -223,12 +223,12 @@ DIRETRIZES DE EVOLUÇÃO DA CONVERSA E UNICIDADE:
 
 Atenção: As respostas devem formar uma NARRATIVA TEMPORAL evolutiva (ex: cansaço aumentando ou humor melhorando ao longo dos dias).
 Para CADA interação, simule a conversa e IDENTIFIQUE qual eixo ESG da lista fornecida melhor se adequa ao tema discutido.
-SEJA EXTREMAMENTE CONCISO E DIRETO nos diálogos. Limite os textos a no máximo 1 ou 2 frases curtas para não exceder o limite de tokens da API.
+SEJA EXTREMAMENTE CONCISO E DIRETO nos diálogos. Limite os textos a no máximo 1 ou 3 frases curtas para não exceder o limite de tokens da API.
 Retorne RIGOROSAMENTE um objeto JSON contendo uma única chave chamada "interacoes", que deve ser array de objetos com:
-- "pergunta_ia": "Pergunta curta, empática e estruturalmente INÉDITA"
+- "pergunta_ia": "Pergunta curta, objetiva, empática e estruturalmente INÉDITA"
 - "resposta_colaborador": "Relato em 1 pessoa (conciso)"
-- "eixo_esg_identificado": "Exatamente o nome de um dos eixos válidos informados acima"
-- "sugestao_ia": "Ação prática e curta"
+- "eixo_esg_identificado": "Exatamente o nome de um dos eixos válidos informados acima que se enquadre ao relato do colaborador"
+- "sugestao_ia": "Ação prática e curta, que tenha relação com o relato do colaborador e que seja aplicável no ambiente corporativo"
 - "percentual_adesao": inteiro de 0 a 100 indicando a saúde demonstrada neste relato
 - "feedback_sugestao": "Boa", "Ruim" ou "Indiferente"
 `;

@@ -13,13 +13,16 @@ export const runAnalystGrouping = async (dataInicioParam, dataFimParam) => {
 
     try {
         const iaServiceUrl = process.env.IA_SERVICE_URL || (process.env.USE_LOCAL_SERVICES === 'true' 
-            ? 'http://localhost:3002/api' 
+            ? 'http://127.0.0.1:3002/api' 
             : 'https://ia-service-h3y5.onrender.com/api');
 
         // O Motor Analítico agora delega a descoberta de clusters organicamente para o banco vetorial
         const respostaIa = await axios.post(`${iaServiceUrl}/semantic-clustering`, {
             data_inicio: dataInicio,
             data_fim: dataFim
+        }, {
+            headers: { 'Connection': 'close' },
+            timeout: 60000
         });
 
         const clustersOrganicos = respostaIa.data.clusters || [];

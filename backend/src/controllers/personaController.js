@@ -34,6 +34,8 @@ export const createPersona = async (req, res) => {
             await axios.post(`${IA_SERVICE_URL}/twin`, {
                 id_persona: novaPersona.id_persona,
                 respostasOnboarding: data
+            }, {
+                headers: { 'Connection': 'close' }
             });
         } catch (iaError) {
             console.error('Aviso: Gêmeo estruturado salvo, mas falha ao conectar com Serviço de IA.', iaError.message);

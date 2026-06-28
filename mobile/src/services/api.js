@@ -7,6 +7,10 @@ import { Platform } from 'react-native';
 const getHostIp = () => {
     // No navegador (Expo Web), sempre usamos localhost para evitar bloqueios de CORS (Cross-Origin)
     if (Platform.OS === 'web') {
+        // Obtém a origem exata da barra de endereços, permitindo testar via IP de rede sem erros de Network
+        if (typeof window !== 'undefined') {
+            return window.location.hostname;
+        }
         return 'localhost';
     }
     // A `hostUri` é a forma moderna e mais confiável de obter o IP do host de desenvolvimento.

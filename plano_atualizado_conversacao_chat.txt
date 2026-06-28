@@ -1,0 +1,112 @@
+PLANO DE REFATORAÇÃO: ARQUITETURA CONVERSACIONAL BASEADA EM SKILLS E ESTADOS
+================================================================================
+
+1. MOTIVAÇÃO E OBJETIVOS
+--------------------------------------------------------------------------------
+A atual implementação do Mentor de IA (`conversationalMentor.js`) utiliza um prompt monolítico. Isso sobrecarrega o LLM, gerando alucinações (como a IA fazendo perguntas não solicitadas) e dependência de expressões regulares frágeis (regex) para controle de fluxo e encerramento de conversas.
+
+Objetivos da refatoração:
+- Eliminar regex para identificação de intenções (usar IA determinística).
+- Bloquear interações clínicas na raiz (Firewall Clínico).
+- Instituir "Modos de Escuta" orgânicos (Escuta Ativa x Direcionamento) para não saturar o colaborador com conselhos imediatos.
+- Separar responsabilidades (Separation of Concerns) adotando uma arquitetura baseada em "Skills" com arquivos Markdown (.md).
+- Desacoplar a mensageria (enviar múltiplas bolhas de chat separadas em vez de texto concatenado).
+- Garantir formatação estrita (JSON Schema / Structured Outputs) para extração perfeita de Eixos ESG.
+
+
+2. NOVA ARQUITETURA DE DIRETÓRIOS
+--------------------------------------------------------------------------------
+A lógica do Agente sairá do arquivo principal e será dividida em Skills independentes.
+
+/ia-service/src/
+ ├── utils/
+ │    └── promptLoader.js             (Utilitário para ler arquivos .md e injetar variáveis de contexto)
+ │
+ ├── skills/
+ │    ├── routerIntentionSkill/
+ │    │    ├── prompt.md              (Instruções base do classificador e firewall clínico)
+ │    │    └── index.js               (Chamada LLM ultra-rápida via GPT-3.5)
+ │    │
+ │    └── empathyAndExtractionSkill/
+ │         ├── prompt.md              (Instruções de Empatia, Modos de Escuta e extração ESG)
+ │         └── index.js               (Chamada LLM via GPT-3.5/GPT-4 com Strict JSON Schema)
+ │
+ └── services/
+      └── conversationalMentor.js     (Atuará apenas como Orquestrador / Máquina de Estados via código)
+
+
+3. MÁQUINA DE ESTADOS E MODOS DE ESCUTA (CONCEITO)
+--------------------------------------------------------------------------------
+A conversa passará a ser regida por estados classificados matematicamente pela IA:
+
+A) Roteamento Inicial (Skill 4):
+   - ENCERRAMENTO: Usuário quer finalizar. Código dispara agradecimento e aciona a flag de avaliação. Fim.
+   - CLINICO: Usuário pede apoio médico. Código barra e instrui busca por RH/Médicos. Fim.
+   - CONTINUIDADE: Usuário está engajado. Repassa para a Skill de Empatia.
+
+B) Modos de Escuta (Skill 3):
+   - ESCUTA_ATIVA (topico_esgotado: false): IA acolhe o desabafo de forma empática e natural (sem jargões ou frases de estado como "Aguardar contexto"). As flags de estado são geradas paralelamente e não interferem na qualidade da conversa. O orquestrador separa a resposta em duas bolhas: Acolhimento e Sugestão focada no eixo ESG.
+   - DIRECIONAMENTO (topico_esgotado: true): IA acolhe o relato finalizado. O orquestrador engatilha a bolha de empatia, a bolha da sugestão e, por fim, a bolha isolada de finalização: "Há algo mais que posso fazer por você?".
+
+
+4. PASSO A PASSO DA IMPLEMENTAÇÃO
+--------------------------------------------------------------------------------
+A execução do código seguirá a seguinte ordem estrita para mitigar riscos de quebra do sistema atual:
+
+PASSO 1: Criação da Infraestrutura de Carregamento
+- Criar `/utils/promptLoader.js`.
+- Desenvolver função genérica que lê arquivos .md do disco, busca por marcadores `{{variavel}}` e substitui com dados dinâmicos da memória/banco de dados.
+
+PASSO 2: Implementação da Skill de Roteamento (Router Intention)
+- Criar a pasta `/skills/routerIntentionSkill`.
+- Escrever o `prompt.md` instruindo a IA a classificar textos em ["ENCERRAMENTO", "CLINICO", "CONTINUIDADE"].
+- Desenvolver o `index.js` dessa skill, utilizando a API da OpenAI focada em baixo custo e baixa latência (temperature: 0.1), garantindo retorno JSON validado.
+
+PASSO 3: Implementação da Skill de Empatia e Extração
+- Criar a pasta `/skills/empathyAndExtractionSkill`.
+- Escrever o `prompt.md` contendo os 10 eixos ESG permitidos, as regras de não usar interrogações, e a lógica dos "Modos de Escuta".
+- Desenvolver o `index.js` garantindo o uso de "Structured Outputs" e migrando para o `gpt-4o-mini`. A tipagem será: `resposta_chat` (string empática fluida), `eixo_identificado` (enum), `sugestao_final` (string contextualizada e natural), `percentual_adesao` (number), e as flags `topico_esgotado` (boolean) e `solicitar_avaliacao` (boolean). CRÍTICO: Garantir via prompt que estados da conversa NUNCA vazem para `resposta_chat` ou `sugestao_final`.
+
+PASSO 4: Refatoração do Orquestrador (conversationalMentor.js)
+- Limpar a função `processChatInteraction` atual (remover os 5 blocos de regex `.replace`, `.test` e os prompts hardcoded).
+- Redesenhar a função para atuar como Roteador de Código:
+    1. Resgata Memória RAG (ChromaDB) e Perfil.
+    2. Executa a `routerIntentionSkill(mensagem)`.
+    3. Avalia retorno: Se for CLINICO ou ENCERRAMENTO, constrói os arrays de resposta localmente (`mensagens_app`) e encerra o fluxo (retornando `solicitar_avaliacao: true` se for encerramento natural).
+    4. Se CONTINUIDADE, executa `empathyAndExtractionSkill(contexto, mensagem)`.
+    5. Constrói o array `mensagens_app` desacoplado: adiciona a resposta empática no array (bolha 1) e, em seguida, adiciona a `sugestao_final` (bolha 2). Se `topico_esgotado == true`, faz o push da terceira bolha "Há algo mais que posso fazer por você?".
+    6. Salva o contexto (com flag indicativa de modo de escuta) na memória do Gêmeo Digital (ChromaDB).
+
+PASSO 5: Adequação do Controlador de Backend (Persistência no PostgreSQL)
+- O controlador principal (`chatController.js` ou equivalente) que invoca o `ia-service` DEVE:
+    1. Consultar a tabela `EixosESG` pelo nome retornado em `eixo_identificado` (String) para obter o `id_eixo` (Inteiro).
+    2. Garantir que a tabela `Interacoes` no Drizzle permita `sugestao_ia` nulo/vazio (necessário para o "Modo Escuta Ativa").
+    3. Realizar o `INSERT` da interação no PostgreSQL.
+    4. Recuperar o `id_interacao` gerado pelo banco para devolver ao Mobile.
+    5. CRÍTICO: Eliminar do código os "IFs" e as concatenações forçadas de "Que tal...?" na `resposta_chat`. Essa manipulação quebra a lógica de bolhas separadas e injeta indevidamente interrogações no modo de Escuta Ativa.
+
+PASSO 6: Adequação do Contrato de Retorno (API para Mobile)
+- Garantir que o `chatController.js` recupere as propriedades recém-criadas pela IA e AS REPASSE INTACTAS no `res.json(...)` para o Frontend. 
+- O contrato estrito final gerado pela API deverá ser:
+  {
+      "id_interacao": 145, // <-- CRÍTICO: Injetado pelo Backend, não pela IA
+      "resposta_chat": "Texto limpo (para salvamento SQL)",
+      "mensagens_app": ["Acolhimento humanizado (Bolha 1)", "Sugestão no contexto do Eixo ESG (Bolha 2)", "Algo mais? (Bolha 3, se aplicável)"],
+      "eixo_identificado": "String",
+      "sugestao_final": "String",
+      "percentual_adesao": 80,
+      "solicitar_avaliacao": boolean
+  }
+
+PASSO 7: Adequação no Frontend Mobile (React Native)
+- Atualizar a `DailyChatScreen` para ler o array iterativo `mensagens_app`.
+- Implementar um pequeno "timeout" visual (delay) entre a renderização de múltiplas mensagens do array para emular digitação humana natural.
+- Fazer o gatilho da renderização dos botões de avaliação (Boa/Ruim/Indiferente) reagir estritamente à variável `solicitar_avaliacao === true`. Ao clicar em um dos botões, usar o `id_interacao` retornado pela API para atualizar o feedback no backend.
+
+
+5. CRITÉRIOS DE ACEITE E PREVENÇÃO DE FALHAS
+--------------------------------------------------------------------------------
+- Nenhuma Expressão Regular (Regex) baseada em palavras textuais deverá existir no Orquestrador.
+- O LLM não deve gerar nenhuma pontuação de interrogação nas respostas de acolhimento.
+- A string das mensagens nunca poderá sofrer "concatenação com quebra de linha" (\n). Devem ir sempre em índices diferentes de um Array.
+- O contexto e a memória do Gêmeo Digital devem ser gravados de volta no ChromaDB de forma íntegra e contextual, assegurando a evolução diária.

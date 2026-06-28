@@ -8,6 +8,7 @@ export default function DailyChatScreen({ route, navigation }) {
     
     const [loading, setLoading] = useState(true);
     const [messages, setMessages] = useState([]); // Histórico contínuo do chat
+    const [isTyping, setIsTyping] = useState(false); // Controla a animação visual de digitação das bolhas
     const [inputText, setInputText] = useState('');
     const [feedbackGiven, setFeedbackGiven] = useState(false);
     const [latestSuggestion, setLatestSuggestion] = useState(null);
@@ -22,6 +23,7 @@ export default function DailyChatScreen({ route, navigation }) {
             const fetchDailyQuestion = async () => {
                 setLoading(true);
                 setMessages([]);
+                setIsTyping(false);
                 setShowEndSession(false);
                 setFeedbackGiven(false);
                 setLatestSuggestion(null);
@@ -69,23 +71,45 @@ export default function DailyChatScreen({ route, navigation }) {
                 id_persona
             });
             
-            setLatestSuggestion(response.data);
+            // Evita que a mensagem de encerramento (sem ID) sobrescreva a sugestão ESG real anterior.
+            if (response.data.id_interacao || !latestSuggestion) {
+                setLatestSuggestion(response.data);
+            }
             
-            // O retorno da IA vira uma resposta orgânica no bate-papo sem forçar repetição!
-            setMessages(prev => [
-                ...prev,
-                { id: (Date.now() + 1).toString(), sender: 'ia', text: response.data.resposta_chat || response.data.sugestao_acao }
-            ]);
+            // Garante que é um array iterável
+            const chatArray = response.data.mensagens_app || [response.data.resposta_chat || "Acolhimento padrão"];
+            
+            setLoading(false); // Libera o input de rede enquanto a IA "digita"
+            setIsTyping(true); // Inicia o efeito de digitação visual
+
+            // Laço iterativo com delay (Emula o Gêmeo Digital digitando balões separados)
+            for (let i = 0; i < chatArray.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, i === 0 ? 600 : 1500)); // Delay natural
+                
+                const msgText = chatArray[i];
+                setMessages(prev => [...prev, { id: Date.now().toString() + i, sender: 'ia', text: msgText }]);
+            }
+
+            setIsTyping(false); // Concluiu de digitar todas as bolhas
+
+            // Gatilho Estrito de Renderização de Avaliação
+            if (response.data.solicitar_avaliacao === true) {
+                setShowEndSession(true);
+            }
         } catch (error) {
             console.error("Erro ao enviar resposta:", error);
-        } finally {
             setLoading(false);
+            setIsTyping(false);
         }
     };
 
     const handleFeedback = async (type) => {
         try {
-            await api.post('/chat/feedback', { feedback: type, id_persona });
+            await api.post('/chat/feedback', { 
+                feedback: type, 
+                id_persona,
+                id_interacao: latestSuggestion?.id_interacao // Garante vínculo exato no BD relacional
+            });
             setFeedbackGiven(true);
         } catch (error) {
             console.error("Erro ao enviar feedback:", error);
@@ -137,14 +161,14 @@ export default function DailyChatScreen({ route, navigation }) {
             >
                 {messages.map(renderMessage)}
                 
-                {loading && messages.length > 0 && (
+                {(loading || isTyping) && messages.length > 0 && (
                     <View style={[styles.bubbleIa, { width: 60, alignItems: 'center' }]}>
                         <ActivityIndicator size="small" color="#3b82f6" />
                     </View>
                 )}
 
                 {/* Botão de Encerrar Sessão (Só aparece após você conversar ao menos 1 vez) */}
-                {!showEndSession && messages.length > 1 && !loading && (
+                {!showEndSession && messages.length > 1 && !loading && !isTyping && (
                     <TouchableOpacity style={styles.endSessionBtn} onPress={() => setShowEndSession(true)}>
                         <Text style={styles.endSessionBtnText}>🛑 Finalizar conversa por hoje</Text>
                     </TouchableOpacity>
@@ -152,8 +176,8 @@ export default function DailyChatScreen({ route, navigation }) {
 
                 {showEndSession && latestSuggestion && (
                     <View style={styles.suggestionBox}>
-                        <Text style={styles.suggestionTitle}>Sua Calibração Diária ({latestSuggestion.eixo})</Text>
-                        <Text style={styles.suggestionText}>{latestSuggestion.sugestao_acao}</Text>
+                        <Text style={styles.suggestionTitle}>Sua Calibração Diária ({latestSuggestion.eixo_identificado || 'Geral'})</Text>
+                        <Text style={styles.suggestionText}>{latestSuggestion.sugestao_final || 'Agradecemos por partilhar seu dia!'}</Text>
                         
                         {!feedbackGiven ? (
                             <View style={styles.feedbackContainer}>
@@ -182,13 +206,13 @@ export default function DailyChatScreen({ route, navigation }) {
                 <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.textInput}
-                        placeholder="Escreva como você está se sentindo..."
+                        placeholder="Escreva ou selecione uma opção acima..."
                         value={inputText}
                         onChangeText={setInputText}
                         onSubmitEditing={() => handleSendResponse(inputText)}
                     />
-                    <TouchableOpacity style={styles.sendButton} onPress={() => handleSendResponse(inputText)} disabled={loading}>
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendButtonText}>Enviar</Text>}
+                    <TouchableOpacity style={styles.sendButton} onPress={() => handleSendResponse(inputText)} disabled={loading || isTyping}>
+                        {(loading || isTyping) ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendButtonText}>Enviar</Text>}
                     </TouchableOpacity>
                 </View>
             )}
