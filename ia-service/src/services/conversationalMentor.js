@@ -1,19 +1,25 @@
+import 'dotenv/config'; // Garante que a chave exista antes das skills serem carregadas
 import axios from 'axios';
 import { initChromaCollections } from '../config/chromaClient.js';
 import { routeIntention } from '../skills/routerIntentionSkill/index.js';
 import { empathyAndExtraction } from '../skills/empathyAndExtractionSkill/index.js';
-import 'dotenv/config'; // Garante que a chave da OpenAI seja lida corretamente
 
 // Recuperador Oficial: Garante que os Dados Oficiais do Gêmeo nunca sejam perdidos por falhas no Express/Rota.
 const fetchPersonaFallback = async (safeId) => {
     if (!safeId || isNaN(Number(safeId))) return null;
+
+    const backendUrl = process.env.BACKEND_URL;
+    if (!backendUrl) {
+        // A ausência da URL do backend não deve ser um erro silencioso.
+        console.error("[IA Mentor] A variável de ambiente BACKEND_URL não está definida. A busca de fallback para a persona não pode ser executada.");
+        return null;
+    }
+
     try {
-        const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:3000/api';
-        const { data } = await axios.get(`${backendUrl}/personas`, {
-            headers: { 'Connection': 'close' }
-        });
+        const { data } = await axios.get(`${backendUrl}/personas`); // Assumindo que BACKEND_URL contém o caminho completo da API, ex: http://localhost:3000/api
         return data.personas?.find(p => p.id_persona === Number(safeId)) || null;
     } catch (e) {
+        console.error(`[IA Mentor] Falha na comunicação com o backend ao tentar buscar persona. URL: ${backendUrl}. Erro: ${e.message}`);
         return null;
     }
 };
@@ -266,16 +272,10 @@ export const processChatInteraction = async (id_persona_arg, eixoESGSelecionado_
             mensagensApp.push(parsedResponse.sugestao_final);
         }
         
-        // Validação defensiva ampliada: Avalia as 3 flags possíveis do LLM indicando desfecho
-        const isEsgotado = parsedResponse.topico_esgotado === true || 
-                           String(parsedResponse.modo_escuta).toUpperCase() === 'DIRECIONAMENTO' ||
-                           parsedResponse.solicitar_avaliacao === true;
-
-        if (isEsgotado) {
+        // Validação de desfecho: Conforme o plano, a IA só deve perguntar se pode ajudar em algo mais se o tópico tiver sido esgotado.
+        // Isso implementa corretamente o modo de "Escuta Ativa", onde o mentor não força a continuidade da conversa.
+        if (parsedResponse.topico_esgotado === true) {
             mensagensApp.push("Há algo mais que posso fazer por você?");
-        } else {
-            // Se não esgotou (Escuta Ativa), a IA não gerou perguntas. Injetamos o estímulo para a conversa não morrer.
-            mensagensApp.push("Gostaria de compartilhar mais algum detalhe sobre isso?");
         }
         
         parsedResponse.resposta_chat = conselhoLimpo;

@@ -31,8 +31,7 @@ export const getDailyQuestion = async (req, res) => {
         try {
             // Envia para o serviço de IA consultar a essência vetorial no ChromaDB e formular uma pergunta hiper-personalizada
             iaResponse = await axios.post(`${iaServiceUrl}/daily-question`, { id_persona, personaFallback }, { 
-                timeout: 35000,
-                headers: { 'Connection': 'close' } 
+                timeout: 35000
             });
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service em getDailyQuestion.", iaError.message);
@@ -85,8 +84,7 @@ export const respondToChat = async (req, res) => {
                 respostaColaboradorNatural: relato,
                 personaFallback
             }, { 
-                timeout: 35000, // Aumentado para 35s para aguardar a IA processar a resposta
-                headers: { 'Connection': 'close' } 
+                timeout: 35000 // Aumentado para 35s para aguardar a IA processar a resposta
             });
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service. Ativando Airbag de Chat.", iaError.message);
@@ -202,8 +200,7 @@ export const analyzeSuggestion = async (req, res) => {
         let iaResponse;
         try {
             iaResponse = await axios.post(`${iaServiceUrl}/analyze-suggestion`, { id_persona, sugestao, personaFallback }, { 
-                timeout: 35000,
-                headers: { 'Connection': 'close' } 
+                timeout: 35000
             });
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service em analyzeSuggestion.", iaError.message);
@@ -235,8 +232,7 @@ export const getPerception = async (req, res) => {
         try {
             // Tenta obter a percepção da IA com tempo estendido
             iaResponse = await axios.post(`${iaServiceUrl}/perception`, { id_persona, personaFallback }, { 
-                timeout: 35000,
-                headers: { 'Connection': 'close' } 
+                timeout: 35000
             });
         } catch (iaError) {
             console.error("Aviso: Falha de conexão ou Timeout com o IA-Service em getPerception.", iaError.message);
